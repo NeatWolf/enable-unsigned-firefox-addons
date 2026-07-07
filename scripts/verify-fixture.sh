@@ -1,4 +1,5 @@
-#!/bin/bash -euo pipefail
+#!/usr/bin/env bash
+set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
@@ -9,11 +10,70 @@ cleanup() {
 }
 trap cleanup EXIT
 
-FIXTURE_HOME="$TEMPDIR/firefox"
-OMNI_SOURCE="$TEMPDIR/omni-source"
-mkdir -p "$FIXTURE_HOME" "$OMNI_SOURCE/modules"
+ZIP_BIN=$(command -v zip || true)
+PYTHON_BIN=""
+if command -v python3 > /dev/null 2>&1; then
+    PYTHON_BIN=$(command -v python3)
+elif command -v python > /dev/null 2>&1; then
+    PYTHON_BIN=$(command -v python)
+fi
 
-cat > "$OMNI_SOURCE/modules/AppConstants.sys.mjs" <<'APP_CONSTANTS'
+if [[ -z $ZIP_BIN && -z $PYTHON_BIN ]]; then
+    echo "Couldn't find a repacker. Install Info-ZIP zip, or install python3/python for the fallback repacker."
+    exit 1
+fi
+
+make_omni() {
+    local target=$1
+    local python_target=$target
+
+    if [[ -n $ZIP_BIN ]]; then
+        zip -0DXqr "$target" .
+        return
+    fi
+
+    if command -v cygpath > /dev/null 2>&1; then
+        python_target=$(cygpath -w "$target")
+    fi
+
+    OMNI_TARGET="$python_target" "$PYTHON_BIN" - <<'PY'
+import os
+import zipfile
+from pathlib import Path
+
+target = Path(os.environ["OMNI_TARGET"])
+if target.exists():
+    target.unlink()
+
+root = Path.cwd()
+with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_STORED) as archive:
+    for path in sorted(root.rglob("*")):
+        if path.is_file():
+            archive.write(path, path.relative_to(root).as_posix())
+PY
+}
+
+write_app_constants() {
+    local format=$1
+    local target=$2
+
+    case "$format" in
+        modern)
+            cat > "$target" <<'APP_CONSTANTS'
+export var AppConstants = Object.freeze({
+  MOZ_REQUIRE_SIGNING: true,
+});
+APP_CONSTANTS
+            ;;
+        modern-false)
+            cat > "$target" <<'APP_CONSTANTS'
+export var AppConstants = Object.freeze({
+  MOZ_REQUIRE_SIGNING: false,
+});
+APP_CONSTANTS
+            ;;
+        legacy)
+            cat > "$target" <<'APP_CONSTANTS'
 export var AppConstants = {
   MOZ_REQUIRE_SIGNING:
 #ifdef MOZ_REQUIRE_SIGNING
@@ -21,38 +81,169 @@ export var AppConstants = {
 #endif
 };
 APP_CONSTANTS
+            ;;
+        *)
+            echo "Unknown fixture format: $format"
+            exit 1
+            ;;
+    esac
+}
 
-pushd "$OMNI_SOURCE" > /dev/null
-zip -qr9XD "$FIXTURE_HOME/omni.ja" .
-popd > /dev/null
+create_fixture() {
+    local name=$1
+    local format=$2
+    local app_constants_relpath=$3
+    local fixture_home="$TEMPDIR/$name/firefox"
+    local omni_source="$TEMPDIR/$name/omni-source"
 
-MOZILLA_HOME="$FIXTURE_HOME" "$REPO_ROOT/patch-firefox.sh" > /dev/null
+    mkdir -p "$fixture_home"
+    if [[ $format == "missing" ]]; then
+        mkdir -p "$omni_source/modules"
+        echo "export const NothingUseful = true;" > "$omni_source/modules/Other.sys.mjs"
+    else
+        mkdir -p "$(dirname "$omni_source/$app_constants_relpath")"
+        write_app_constants "$format" "$omni_source/$app_constants_relpath"
+    fi
 
-if [[ ! -f "$FIXTURE_HOME/omni-orig.ja" ]]; then
-    echo "patch did not create omni-orig.ja"
-    exit 1
-fi
+    pushd "$omni_source" > /dev/null
+    make_omni "$fixture_home/omni.ja"
+    popd > /dev/null
+}
 
-mkdir "$TEMPDIR/patched"
-unzip -q -d "$TEMPDIR/patched" "$FIXTURE_HOME/omni.ja"
-if ! grep -q "  false," "$TEMPDIR/patched/modules/AppConstants.sys.mjs"; then
-    echo "patch did not set MOZ_REQUIRE_SIGNING to false"
-    exit 1
-fi
+assert_app_constants_value() {
+    local name=$1
+    local archive=$2
+    local app_constants_relpath=$3
+    local expected=$4
+    local extract_dir="$TEMPDIR/$name/extract-$expected-$$"
+    local app_constants_file="$extract_dir/$app_constants_relpath"
 
-MOZILLA_HOME="$FIXTURE_HOME" "$REPO_ROOT/unpatch-firefox.sh"
+    mkdir -p "$extract_dir"
+    unzip -q -d "$extract_dir" "$archive"
 
-if [[ -f "$FIXTURE_HOME/omni-orig.ja" ]]; then
-    echo "unpatch did not remove omni-orig.ja"
-    exit 1
-fi
+    if [[ ! -f $app_constants_file ]]; then
+        echo "$name: missing $app_constants_relpath in archive"
+        exit 1
+    fi
 
-mkdir "$TEMPDIR/restored"
-unzip -q -d "$TEMPDIR/restored" "$FIXTURE_HOME/omni.ja"
-if ! grep -q "  true," "$TEMPDIR/restored/modules/AppConstants.sys.mjs"; then
-    echo "unpatch did not restore MOZ_REQUIRE_SIGNING to true"
-    exit 1
-fi
+    if [[ $expected == "true" ]]; then
+        if ! grep -Eq "MOZ_REQUIRE_SIGNING:[[:space:]]*true,|^[[:space:]]*true," "$app_constants_file"; then
+            echo "$name: expected MOZ_REQUIRE_SIGNING true"
+            exit 1
+        fi
+    else
+        if grep -Eq "MOZ_REQUIRE_SIGNING:[[:space:]]*true,|^[[:space:]]*true," "$app_constants_file"; then
+            echo "$name: left MOZ_REQUIRE_SIGNING true"
+            exit 1
+        fi
+        if ! grep -Eq "MOZ_REQUIRE_SIGNING:[[:space:]]*false,|^[[:space:]]*false," "$app_constants_file"; then
+            echo "$name: expected MOZ_REQUIRE_SIGNING false"
+            exit 1
+        fi
+    fi
+}
+
+assert_no_patch_side_effects() {
+    local name=$1
+    local fixture_home=$2
+
+    if [[ -f "$fixture_home/omni-orig.ja" ]]; then
+        echo "$name: unexpected omni-orig.ja"
+        exit 1
+    fi
+
+    if compgen -G "$fixture_home/omni.ja.new.*" > /dev/null; then
+        echo "$name: left temporary replacement archive"
+        exit 1
+    fi
+}
+
+run_roundtrip_fixture() {
+    local name=$1
+    local format=$2
+    local app_constants_relpath=$3
+    local fixture_home="$TEMPDIR/$name/firefox"
+
+    create_fixture "$name" "$format" "$app_constants_relpath"
+
+    SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" > /dev/null
+    if [[ ! -f "$fixture_home/omni-orig.ja" ]]; then
+        echo "$name: patch did not create omni-orig.ja"
+        exit 1
+    fi
+    assert_app_constants_value "$name-patched" "$fixture_home/omni.ja" "$app_constants_relpath" "false"
+
+    MOZILLA_HOME="$fixture_home" "$REPO_ROOT/unpatch-firefox.sh" --dry-run > /dev/null
+    if [[ ! -f "$fixture_home/omni-orig.ja" ]]; then
+        echo "$name: unpatch dry-run removed omni-orig.ja"
+        exit 1
+    fi
+    assert_app_constants_value "$name-unpatch-dry-run" "$fixture_home/omni.ja" "$app_constants_relpath" "false"
+
+    SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/unpatch-firefox.sh" > /dev/null
+    if [[ -f "$fixture_home/omni-orig.ja" ]]; then
+        echo "$name: unpatch did not remove omni-orig.ja"
+        exit 1
+    fi
+    assert_app_constants_value "$name-restored" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
+}
+
+run_patch_dry_run_fixture() {
+    local name="modern-dry-run"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+
+    create_fixture "$name" "modern" "$app_constants_relpath"
+
+    MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run > /dev/null
+    assert_no_patch_side_effects "$name" "$fixture_home"
+    assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
+}
+
+run_patch_failure_fixture() {
+    local name=$1
+    local format=$2
+    local app_constants_relpath=$3
+    local fixture_home="$TEMPDIR/$name/firefox"
+
+    create_fixture "$name" "$format" "$app_constants_relpath"
+
+    if SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" > /dev/null 2> /dev/null; then
+        echo "$name: patch unexpectedly succeeded"
+        exit 1
+    fi
+
+    assert_no_patch_side_effects "$name" "$fixture_home"
+}
+
+run_process_guard_fixture() {
+    local name="running-firefox-guard"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+    local fake_bin="$TEMPDIR/$name/fake-bin"
+
+    create_fixture "$name" "modern" "$app_constants_relpath"
+    mkdir -p "$fake_bin"
+    cat > "$fake_bin/powershell.exe" <<'POWERSHELL'
+#!/usr/bin/env bash
+echo 12345
+POWERSHELL
+    chmod +x "$fake_bin/powershell.exe"
+
+    if PATH="$fake_bin:$PATH" MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" > /dev/null 2> /dev/null; then
+        echo "$name: patch unexpectedly succeeded while Firefox was reported running"
+        exit 1
+    fi
+
+    assert_no_patch_side_effects "$name" "$fixture_home"
+    assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
+}
+
+run_roundtrip_fixture "modern-sysm" "modern" "modules/AppConstants.sys.mjs"
+run_roundtrip_fixture "legacy-jsm" "legacy" "modules/AppConstants.jsm"
+run_patch_dry_run_fixture
+run_patch_failure_fixture "already-false" "modern-false" "modules/AppConstants.sys.mjs"
+run_patch_failure_fixture "missing-appconstants" "missing" "modules/AppConstants.sys.mjs"
+run_process_guard_fixture
 
 echo "Fixture verification completed."
-

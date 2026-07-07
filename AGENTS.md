@@ -11,7 +11,10 @@
 
 - Run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1` after changes.
 - If a working Bash is available, also run `bash -n patch-firefox.sh` and `bash -n unpatch-firefox.sh`.
-- When `zip`, `unzip`, `mktemp`, `sed`, and `grep` are available under Bash, run `scripts/verify-fixture.sh` instead of touching a real Firefox install.
+- Treat Info-ZIP `zip` as the normal repacker. Python is only an optional fallback for machines that have it.
+- When `unzip`, `mktemp`, `sed`, `grep`, and either `zip` or `python3`/`python` are available under Bash, run `scripts/verify-fixture.sh` instead of touching a real Firefox install.
+- Keep `--dry-run` non-mutating for both patch and unpatch paths.
+- Keep the Firefox-running guard enabled for real use; use `SKIP_FIREFOX_PROCESS_CHECK=1` only inside disposable verification fixtures or after explicit user direction.
 - On Windows, `bash.exe` may resolve to WSL. If WSL cannot launch, report that Bash syntax verification was skipped or use a non-WSL Bash such as Git Bash.
 
 ## Script Safety

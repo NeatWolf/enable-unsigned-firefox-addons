@@ -7,6 +7,7 @@ $RequiredFiles = @(
     'patch-firefox.sh',
     'unpatch-firefox.sh',
     'scripts\verify-fixture.sh',
+    '.github\workflows\verify.yml',
     'AGENTS.md',
     'CONTRIBUTING.md',
     '.editorconfig',
@@ -24,6 +25,9 @@ $PatchScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'patch-firefox.sh')
 $UnpatchScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'unpatch-firefox.sh') -Raw
 
 $PatchRequiredPatterns = @(
+    '#!/usr/bin/env bash',
+    'set -euo pipefail',
+    '--dry-run',
     'MOZILLA_HOME',
     'omni.ja',
     'omni-orig.ja',
@@ -32,18 +36,40 @@ $PatchRequiredPatterns = @(
     'AppConstants.sys.mjs',
     'AppConstants.jsm',
     'MOZ_REQUIRE_SIGNING',
-    'zip -qr9XD'
+    'patch_require_signing',
+    'MOZ_REQUIRE_SIGNING:[[:space:]]*true,',
+    'NEW_OMNI_FILE',
+    'omni.ja.new.$$',
+    'assert_firefox_not_running',
+    'SKIP_FIREFOX_PROCESS_CHECK',
+    'repack_omni',
+    'verify_new_archive',
+    'ZIP_STORED'
 )
 
 foreach ($Pattern in $PatchRequiredPatterns) {
-    if ($PatchScript -notlike "*$Pattern*") {
+    if (-not $PatchScript.Contains($Pattern)) {
         throw "patch-firefox.sh is missing expected safeguard or operation: $Pattern"
     }
 }
 
-foreach ($Pattern in @('MOZILLA_HOME', 'omni.ja', 'omni-orig.ja', 'cp -p', 'rm "$ORIGINAL_OMNI_FILE"')) {
-    if ($UnpatchScript -notlike "*$Pattern*") {
+foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', 'MOZILLA_HOME', 'omni.ja', 'omni-orig.ja', 'RESTORE_FILE', 'assert_firefox_not_running', 'SKIP_FIREFOX_PROCESS_CHECK', 'mv "$RESTORE_FILE" "$OMNI_FILE"', 'rm "$ORIGINAL_OMNI_FILE"')) {
+    if (-not $UnpatchScript.Contains($Pattern)) {
         throw "unpatch-firefox.sh is missing expected rollback operation: $Pattern"
+    }
+}
+
+$FixtureScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\verify-fixture.sh') -Raw
+foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'already-false', 'missing-appconstants', 'running-firefox-guard', '--dry-run')) {
+    if (-not $FixtureScript.Contains($Pattern)) {
+        throw "scripts\verify-fixture.sh is missing expected test coverage: $Pattern"
+    }
+}
+
+$WorkflowScript = Get-Content -LiteralPath (Join-Path $RepoRoot '.github\workflows\verify.yml') -Raw
+foreach ($Pattern in @('actions/checkout@v4', 'bash -n patch-firefox.sh', 'bash scripts/verify-fixture.sh')) {
+    if (-not $WorkflowScript.Contains($Pattern)) {
+        throw ".github\workflows\verify.yml is missing expected CI step: $Pattern"
     }
 }
 
@@ -89,7 +115,7 @@ if ($null -eq $UsableBash) {
         throw 'Bash syntax check failed for scripts\verify-fixture.sh.'
     }
 
-    $MissingTools = @(& $UsableBash -lc 'for tool in zip unzip mktemp sed grep; do command -v "$tool" >/dev/null 2>&1 || echo "$tool"; done')
+    $MissingTools = @(& $UsableBash -lc 'for tool in unzip mktemp sed grep; do command -v "$tool" >/dev/null 2>&1 || echo "$tool"; done; command -v zip >/dev/null 2>&1 || command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1 || echo "zip or python3/python"')
     if ($MissingTools.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace(($MissingTools -join ''))) {
         Write-Warning "Skipped fixture verification because Bash is missing: $($MissingTools -join ', ')"
     } else {
