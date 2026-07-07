@@ -16,6 +16,29 @@ For various reasons, you might prefer to be on the more stable release channel. 
 
 The scripts use `bash`, Info-ZIP `zip` and `unzip`, `mktemp` (from GNU coreutils), and `sed`. Ensure you have these installed before using the script.
 
+# Repository layout
+
+- `patch-firefox.sh`: backs up `omni.ja` to `omni-orig.ja`, edits Firefox `AppConstants`, and rebuilds `omni.ja`.
+- `unpatch-firefox.sh`: restores `omni.ja` from `omni-orig.ja`.
+- `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
+- `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
+- `AGENTS.md`: rules for future automated work in this repository.
+
+# Verify changes
+
+Run the local repository checks after making changes:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1
+```
+
+If you have a working Bash installation, also run:
+
+```bash
+bash -n patch-firefox.sh
+bash -n unpatch-firefox.sh
+```
+
 # Patching
 
 Follow the following steps to patch Firefox to disable addon signing.

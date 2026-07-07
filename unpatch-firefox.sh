@@ -5,10 +5,13 @@ if [[ -z $MOZILLA_HOME ]]; then
     exit 1
 fi
 
-if [[ ! -f $MOZILLA_HOME/omni-orig.ja ]]; then
+OMNI_FILE="$MOZILLA_HOME/omni.ja"
+ORIGINAL_OMNI_FILE="$MOZILLA_HOME/omni-orig.ja"
+
+if [[ ! -f $ORIGINAL_OMNI_FILE ]]; then
     echo "Not already patched"
     exit 1
 fi
 
-cp $MOZILLA_HOME/omni-orig.ja $MOZILLA_HOME/omni.ja
-rm $MOZILLA_HOME/omni-orig.ja
+cp -p "$ORIGINAL_OMNI_FILE" "$OMNI_FILE"
+rm "$ORIGINAL_OMNI_FILE"

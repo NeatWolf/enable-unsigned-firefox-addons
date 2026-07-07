@@ -5,12 +5,20 @@ if [[ -z $MOZILLA_HOME ]]; then
     exit 1
 fi
 
-if [[ -f $MOZILLA_HOME/omni-orig.ja ]]; then
+OMNI_FILE="$MOZILLA_HOME/omni.ja"
+ORIGINAL_OMNI_FILE="$MOZILLA_HOME/omni-orig.ja"
+
+if [[ ! -f $OMNI_FILE ]]; then
+    echo "Couldn't find $OMNI_FILE"
+    exit 1
+fi
+
+if [[ -f $ORIGINAL_OMNI_FILE ]]; then
     echo "Already patched?"
     exit 1
 fi
 
-cp $MOZILLA_HOME/omni.ja $MOZILLA_HOME/omni-orig.ja
+cp -p "$OMNI_FILE" "$ORIGINAL_OMNI_FILE"
 
 TEMPDIR=$(mktemp -d)
 if [[ ! -d $TEMPDIR ]]; then
@@ -18,30 +26,44 @@ if [[ ! -d $TEMPDIR ]]; then
    exit 1
 fi
 
-unzip -q -d $TEMPDIR $MOZILLA_HOME/omni.ja || true
+cleanup() {
+    rm -rf "$TEMPDIR"
+}
+trap cleanup EXIT
 
-if [[ ! -f $TEMPDIR/modules/AppConstants.jsm ]]; then
-    rm -r $TEMPDIR
+unzip -q -d "$TEMPDIR" "$OMNI_FILE" || true
+
+APP_CONSTANTS_FILE=""
+for candidate in "$TEMPDIR/modules/AppConstants.sys.mjs" "$TEMPDIR/modules/AppConstants.jsm"; do
+    if [[ -f $candidate ]]; then
+        APP_CONSTANTS_FILE=$candidate
+        break
+    fi
+done
+
+if [[ -z $APP_CONSTANTS_FILE ]]; then
     echo "Unzip was unsuccessful"
     exit 1
 fi
 
-SIGNLINE=$(grep -n "MOZ_REQUIRE_SIGNING:" $TEMPDIR/modules/AppConstants.jsm | cut -d: -f 1)
+SIGNLINE=$(grep -n "MOZ_REQUIRE_SIGNING:" "$APP_CONSTANTS_FILE" | cut -d: -f 1 | head -n 1)
+if [[ -z $SIGNLINE ]]; then
+    echo "Didn't find MOZ_REQUIRE_SIGNING in AppConstants"
+    exit 1
+fi
 
-CURRENT_CONST=$(tail -n +$(($SIGNLINE + 2)) $TEMPDIR/modules/AppConstants.jsm | head -n1)
+CURRENT_CONST=$(sed -n "$((SIGNLINE + 2))p" "$APP_CONSTANTS_FILE")
 
 if [[ $CURRENT_CONST != "  true," ]]; then
-    rm -r $TEMPDIR
     echo "Didn't find correct data in existing file"
     exit 1
 fi
 
-sed -i -e "$((SIGNLINE + 2))s/true/false/" $TEMPDIR/modules/AppConstants.jsm
+sed -i -e "$((SIGNLINE + 2))s/true/false/" "$APP_CONSTANTS_FILE"
 
-rm $MOZILLA_HOME/omni.ja
-cd $TEMPDIR
-zip -qr9XD $MOZILLA_HOME/omni.ja *
-cd -
+rm "$OMNI_FILE"
+pushd "$TEMPDIR" > /dev/null
+zip -qr9XD "$OMNI_FILE" .
+popd > /dev/null
 
-rm -r $TEMPDIR
 echo Done
