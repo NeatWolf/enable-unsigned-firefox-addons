@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Handled Firefox omni.ja archives that Info-ZIP reports as prefixed while still rejecting unexpected extraction warnings.
 - Added a double-click Windows start menu for status, dry-run, patch, startup-cache cleanup, and restore actions.
 - Switched normal-user download guidance from source ZIPs to release ZIPs.
 - Added clearer download, folder placement, and platform file guidance for normal users.

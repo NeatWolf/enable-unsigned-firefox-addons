@@ -382,14 +382,55 @@ assert_firefox_not_running() {
     fi
 }
 
+known_firefox_omni_unzip_warning() {
+    local log_file=$1
+    local line
+    local saw_extra_bytes=0
+
+    while IFS= read -r line || [[ -n $line ]]; do
+        if [[ -z $line ]]; then
+            continue
+        fi
+
+        if [[ $line == *"extra bytes at beginning or within zipfile"* ]]; then
+            saw_extra_bytes=1
+            continue
+        fi
+
+        if [[ $line == "  (attempting to process anyway)" ]]; then
+            continue
+        fi
+
+        if [[ $line == warning:*"appears to use backslashes as path separators" ]]; then
+            continue
+        fi
+
+        if [[ $line == *"reported length of central directory is"* ]]; then
+            continue
+        fi
+
+        if [[ $line == *"bytes too long (Atari STZip zipfile?  J.H.Holm ZIPSPLIT 1.1"* ]]; then
+            continue
+        fi
+
+        if [[ $line == *"zipfile?).  Compensating..."* ]]; then
+            continue
+        fi
+
+        return 1
+    done < "$log_file"
+
+    [[ $saw_extra_bytes -eq 1 ]]
+}
+
 extract_omni() {
     local archive=$1
     local target_dir=$2
     local log_file=$3
     local unzip_status
 
-    # Firefox omni.ja can include a small prefix that Info-ZIP reports as a
-    # warning. Other extraction warnings are not safe to ignore.
+    # Firefox omni.ja can use a prefixed ZIP layout that Info-ZIP reports as a
+    # warning or exit code 2. Other extraction messages are not safe to ignore.
     : > "$log_file"
     unzip_status=0
     unzip -q -d "$target_dir" "$archive" > /dev/null 2> "$log_file" || unzip_status=$?
@@ -397,8 +438,8 @@ extract_omni() {
         return
     fi
 
-    if [[ $unzip_status -eq 1 ]] &&
-        grep -Fq "extra bytes at beginning or within zipfile" "$log_file" &&
+    if { [[ $unzip_status -eq 1 ]] || [[ $unzip_status -eq 2 ]]; } &&
+        known_firefox_omni_unzip_warning "$log_file" &&
         find_app_constants "$target_dir" > /dev/null 2>&1; then
         return
     fi

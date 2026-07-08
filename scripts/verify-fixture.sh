@@ -377,6 +377,49 @@ run_prefixed_archive_fixture() {
     assert_no_patch_side_effects "$name" "$fixture_home"
 }
 
+run_prefixed_archive_exit_2_fixture() {
+    local name="prefixed-omni-exit-2"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+    local fake_bin="$TEMPDIR/$name/fake-bin"
+    local real_unzip
+    local patch_status_output
+    local unpatch_status_output
+
+    create_fixture "$name" "modern" "$app_constants_relpath"
+    real_unzip=$(command -v unzip)
+    mkdir -p "$fake_bin"
+    cat > "$fake_bin/unzip" <<'UNZIP_SHIM'
+#!/usr/bin/env bash
+set +e
+"$REAL_UNZIP" "$@"
+real_status=$?
+archive="${!#}"
+
+if [[ $(basename "$archive") == "omni.ja" ]]; then
+    cat >&2 <<EOF
+warning [$archive]:  44369976 extra bytes at beginning or within zipfile
+  (attempting to process anyway)
+error [$archive]:  reported length of central directory is
+  -44369976 bytes too long (Atari STZip zipfile?  J.H.Holm ZIPSPLIT 1.1
+  zipfile?).  Compensating...
+EOF
+    exit 2
+fi
+
+exit "$real_status"
+UNZIP_SHIM
+    chmod +x "$fake_bin/unzip"
+
+    patch_status_output=$(PATH="$fake_bin:$PATH" REAL_UNZIP="$real_unzip" MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --status)
+    assert_output_contains "$name-patch-status" "$patch_status_output" "MOZ_REQUIRE_SIGNING: true"
+    assert_output_contains "$name-patch-status" "$patch_status_output" "next step: run this script with --dry-run before patching."
+
+    unpatch_status_output=$(PATH="$fake_bin:$PATH" REAL_UNZIP="$real_unzip" "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$fixture_home")
+    assert_output_contains "$name-unpatch-status" "$unpatch_status_output" "MOZ_REQUIRE_SIGNING: true"
+    assert_output_contains "$name-unpatch-status" "$unpatch_status_output" "next step: no restore needed."
+}
+
 run_corrupt_archive_fixture() {
     local name="corrupt-omni-crc"
     local app_constants_relpath="modules/AppConstants.sys.mjs"
@@ -783,6 +826,7 @@ run_roundtrip_fixture "legacy-jsm" "legacy" "modules/AppConstants.jsm"
 run_status_fixture
 run_patch_dry_run_fixture
 run_prefixed_archive_fixture
+run_prefixed_archive_exit_2_fixture
 run_corrupt_archive_fixture
 run_patch_dry_run_readonly_home_fixture
 run_unpatch_dry_run_readonly_home_fixture
