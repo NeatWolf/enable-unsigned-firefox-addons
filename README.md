@@ -30,6 +30,7 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `patch-firefox.sh`: inspects status, dry-runs safely, edits Firefox `AppConstants`, verifies the replacement archive, then backs up `omni.ja` to `omni-orig.ja` and swaps in the patched archive.
 - `unpatch-firefox.sh`: inspects status, dry-runs safely, restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
 - `clear-startup-cache.sh`: inspects or clears Firefox profile `startupCache` directories listed in `profiles.ini`, with status and dry-run support.
+- `CHANGELOG.md`: high-level summary of user-visible script and repository changes.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
 - `.github/ISSUE_TEMPLATE/config.yml`: disables blank GitHub issues and points readers back to the as-is support policy.
@@ -77,6 +78,8 @@ If the Windows launcher cannot auto-detect the install directory, pass it explic
 .\patch-firefox.cmd --dry-run --mozilla-home "C:\Program Files\Mozilla Firefox"
 .\patch-firefox.cmd --mozilla-home "C:\Program Files\Mozilla Firefox"
 ```
+
+The Windows launchers accept normal Windows install paths such as `C:\Program Files\Mozilla Firefox`; the scripts normalize them when needed.
 
 From Git Bash, macOS, or Linux, use the shell scripts directly:
 

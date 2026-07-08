@@ -87,17 +87,37 @@ candidate_mozilla_homes() {
     done
 }
 
+normalize_mozilla_home_path() {
+    local value=$1
+
+    if [[ -z $value ]]; then
+        return
+    fi
+
+    if [[ -d $value ]]; then
+        printf '%s\n' "$value"
+        return
+    fi
+
+    if command -v cygpath > /dev/null 2>&1 && [[ $value =~ ^[A-Za-z]:[\\/] || $value =~ ^\\\\ ]]; then
+        cygpath -u "$value"
+    else
+        printf '%s\n' "$value"
+    fi
+}
+
 resolve_mozilla_home() {
     local candidate
     local seen="|"
     local matches=()
 
     if [[ -n $MOZILLA_HOME_ARG ]]; then
-        MOZILLA_HOME=$MOZILLA_HOME_ARG
+        MOZILLA_HOME=$(normalize_mozilla_home_path "$MOZILLA_HOME_ARG")
         return
     fi
 
     if [[ -n ${MOZILLA_HOME:-} ]]; then
+        MOZILLA_HOME=$(normalize_mozilla_home_path "$MOZILLA_HOME")
         return
     fi
 

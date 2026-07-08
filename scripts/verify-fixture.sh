@@ -389,12 +389,27 @@ run_mozilla_home_argument_fixture() {
     local name="mozilla-home-argument"
     local app_constants_relpath="modules/AppConstants.sys.mjs"
     local fixture_home="$TEMPDIR/$name/firefox"
+    local windows_home
+    local status_output
 
     create_fixture "$name" "modern" "$app_constants_relpath"
 
     env -u MOZILLA_HOME "$REPO_ROOT/patch-firefox.sh" --dry-run --mozilla-home "$fixture_home" > /dev/null
     assert_no_patch_side_effects "$name" "$fixture_home"
     assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
+
+    if command -v cygpath > /dev/null 2>&1; then
+        windows_home=$(cygpath -w "$fixture_home")
+
+        status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 env -u MOZILLA_HOME "$REPO_ROOT/patch-firefox.sh" --status --mozilla-home "$windows_home")
+        assert_output_contains "$name-windows-status" "$status_output" "MOZ_REQUIRE_SIGNING: true"
+
+        env -u MOZILLA_HOME "$REPO_ROOT/patch-firefox.sh" --dry-run --mozilla-home "$windows_home" > /dev/null
+        assert_no_patch_side_effects "$name-windows-dry-run" "$fixture_home"
+
+        status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$windows_home" "$REPO_ROOT/unpatch-firefox.sh" --status)
+        assert_output_contains "$name-windows-env-status" "$status_output" "MOZ_REQUIRE_SIGNING: true"
+    fi
 }
 
 run_patch_failure_fixture() {
