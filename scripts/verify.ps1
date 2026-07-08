@@ -120,7 +120,7 @@ foreach ($Launcher in @(
     @{ Name = 'unpatch-firefox.cmd'; Text = $UnpatchLauncher },
     @{ Name = 'clear-startup-cache.cmd'; Text = $StartupCacheLauncher }
 )) {
-    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', 'FIREFOX_PATCH_SKIP_BASH_SEARCH', 'CONFIRM_MODIFY', ':classify_args', '--status', ':confirm_modify', 'choice /C YN /N', 'Cancelled. No files were changed.', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', ':bash_not_found', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", 'Install Git for Windows', 'Git for Windows includes Git Bash', 'WSL bash is not used', '"%BASH_EXE%" "%SCRIPT%" %*')) {
+    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', 'FIREFOX_PATCH_SKIP_BASH_SEARCH', 'CONFIRM_MODIFY', ':classify_args', '--status', ':confirm_modify', 'Safer first:', '"%~nx0" --dry-run %*', 'choice /C YN /N', 'Cancelled. No files were changed.', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', ':bash_not_found', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", 'Install Git for Windows', 'Git for Windows includes Git Bash', 'WSL bash is not used', '"%BASH_EXE%" "%SCRIPT%" %*')) {
         if (-not $Launcher.Text.Contains($Pattern)) {
             throw "$($Launcher.Name) is missing expected launcher behavior: $Pattern"
         }
@@ -215,7 +215,7 @@ foreach ($Pattern in @('provided as-is', 'no support commitment', 'asks for conf
 }
 
 $Changelog = Get-Content -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md') -Raw
-foreach ($Pattern in @('Changelog', 'Unreleased', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
+foreach ($Pattern in @('Changelog', 'Unreleased', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'matching dry-run command', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
     if (-not $Changelog.Contains($Pattern)) {
         throw "CHANGELOG.md is missing expected summary text: $Pattern"
     }
@@ -243,7 +243,7 @@ foreach ($Pattern in @('No supported versions', 'provided as-is', 'Report Firefo
 }
 
 $Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
-foreach ($Pattern in @('patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'CHANGELOG.md', 'CODE_OF_CONDUCT.md', 'MAINTENANCE.md', 'pull_request_template.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
+foreach ($Pattern in @('patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'matching `--dry-run` command', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'CHANGELOG.md', 'CODE_OF_CONDUCT.md', 'MAINTENANCE.md', 'pull_request_template.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
     if (-not $Readme.Contains($Pattern)) {
         throw "README.md is missing expected Windows launcher guidance: $Pattern"
     }
@@ -304,9 +304,15 @@ if ($null -eq $UsableBash) {
             throw "Windows launcher help check failed for $Launcher."
         }
 
-        & cmd.exe /d /c "echo N| `"$LauncherPath`""
+        $CancelOutput = & cmd.exe /d /c "echo N| `"$LauncherPath`"" 2>&1
         if ($LASTEXITCODE -ne 0) {
             throw "Windows launcher confirmation cancel check failed for $Launcher."
+        }
+        $CancelText = $CancelOutput -join "`n"
+        foreach ($Pattern in @('Safer first:', "`"$Launcher`" --dry-run", 'Cancelled. No files were changed.')) {
+            if (-not $CancelText.Contains($Pattern)) {
+                throw "Windows launcher confirmation output for $Launcher is missing: $Pattern"
+            }
         }
     }
 

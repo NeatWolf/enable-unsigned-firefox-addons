@@ -52,6 +52,10 @@ echo.
 echo This will delete Firefox profile startupCache folders found by the script.
 echo Firefox must be closed before clearing startupCache.
 echo Run --dry-run first to see exactly what would be removed.
+echo.
+echo Safer first:
+echo   "%~nx0" --dry-run %*
+echo.
 choice /C YN /N /M "Continue? [Y/N] "
 if errorlevel 2 (
     echo Cancelled. No files were changed.

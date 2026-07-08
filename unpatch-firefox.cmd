@@ -52,6 +52,10 @@ echo.
 echo This will restore Firefox by replacing omni.ja from omni-orig.ja.
 echo After a successful restore, omni-orig.ja is removed.
 echo Firefox must be closed. Run --dry-run first to test without changing files.
+echo.
+echo Safer first:
+echo   "%~nx0" --dry-run %*
+echo.
 choice /C YN /N /M "Continue? [Y/N] "
 if errorlevel 2 (
     echo Cancelled. No files were changed.

@@ -51,6 +51,10 @@ rem Ask before the launcher starts a real patch or triggers a UAC prompt.
 echo.
 echo This will patch Firefox by replacing omni.ja.
 echo Firefox must be closed. Run --dry-run first to test without changing files.
+echo.
+echo Safer first:
+echo   "%~nx0" --dry-run %*
+echo.
 choice /C YN /N /M "Continue? [Y/N] "
 if errorlevel 2 (
     echo Cancelled. No files were changed.

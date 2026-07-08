@@ -71,7 +71,7 @@ On Windows, start from PowerShell or Command Prompt:
 
 You can also double-click a `.cmd` launcher. If it fails when launched that way, it leaves the window open so the error message can be read. Command-line use exits normally.
 
-The Windows launchers ask for confirmation before modifying files. `--status`, `--dry-run`, and `--help` do not ask and do not change Firefox.
+The Windows launchers ask for confirmation before modifying files and show the matching `--dry-run` command to try first. `--status`, `--dry-run`, and `--help` do not ask and do not change Firefox.
 
 Successful commands print the next practical step before exiting.
 
