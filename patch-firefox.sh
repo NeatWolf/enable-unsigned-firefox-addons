@@ -242,6 +242,23 @@ write_access_status() {
     fi
 }
 
+repacker_status() {
+    # Status mode is a safe place to show what a future patch run would use
+    # to rebuild omni.ja. Keep these labels simple because users may paste
+    # this output somewhere or read it before trying --dry-run.
+    if command -v zip > /dev/null 2>&1; then
+        printf 'Info-ZIP zip\n'
+    elif command -v powershell.exe > /dev/null 2>&1; then
+        printf 'PowerShell/.NET ZipArchive\n'
+    elif command -v python3 > /dev/null 2>&1; then
+        printf 'Python zipfile fallback (python3)\n'
+    elif command -v python > /dev/null 2>&1; then
+        printf 'Python zipfile fallback (python)\n'
+    else
+        printf 'missing\n'
+    fi
+}
+
 firefox_is_running_for_home() {
     local mozilla_home=$1
     local mozilla_home_physical
@@ -555,6 +572,7 @@ print_status() {
         echo "omni-orig.ja: absent"
     fi
     echo "write access: $(write_access_status)"
+    echo "repacker: $(repacker_status)"
 
     if firefox_is_running_for_home "$MOZILLA_HOME"; then
         echo "firefox process: running from MOZILLA_HOME"

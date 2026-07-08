@@ -32,6 +32,7 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `clear-startup-cache.sh`: inspects or clears Firefox profile `startupCache` directories listed in `profiles.ini`, with status and dry-run support.
 - `CHANGELOG.md`: high-level summary of user-visible script and repository changes.
 - `CODE_OF_CONDUCT.md`: contribution conduct note that keeps discussion factual and out of support scope.
+- `MAINTENANCE.md`: short checklist for keeping script changes small, verified, and user-readable.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
 - `.github/ISSUE_TEMPLATE/config.yml`: disables blank GitHub issues and points readers back to the as-is support policy.
@@ -109,7 +110,7 @@ Follow the following steps to patch Firefox to disable addon signing.
 1. Configure Firefox not to auto-update using `about:preferences#general`, because you will now have additional manual steps to update (see the Updating section).
 1. Find the directory where you have installed Firefox. This is the path where `omni.ja` resides. On many installs it is also the directory containing the `firefox` binary.
 1. Ensure that you have exited from Firefox. The scripts refuse to modify `omni.ja` if Firefox appears to be running from `MOZILLA_HOME`.
-1. Run `patch-firefox.cmd --status --mozilla-home /path/to/firefox` on Windows, or `patch-firefox.sh --status --mozilla-home /path/to/firefox` from Bash, to inspect the Firefox application version and build ID, archive, current signing constant, rollback backup, and Firefox process state without modifying anything.
+1. Run `patch-firefox.cmd --status --mozilla-home /path/to/firefox` on Windows, or `patch-firefox.sh --status --mozilla-home /path/to/firefox` from Bash, to inspect the Firefox application version and build ID, archive, current signing constant, rollback backup, archive repacker, and Firefox process state without modifying anything.
 1. Run the same command with `--dry-run` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox. Dry run does not write to `MOZILLA_HOME`, so it should work even before you have admin/write access for the real patch.
 1. Run the patch command without `--status` or `--dry-run`. On Windows, the launcher asks for confirmation first, then requests UAC elevation automatically if the Firefox directory is protected. If it works, the last line should be Done.
 1. Run `clear-startup-cache.cmd --status` on Windows, or `clear-startup-cache.sh --status` from Bash, to see which Firefox profiles the helper detects.
