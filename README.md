@@ -18,12 +18,14 @@ For various reasons, you might prefer to be on the more stable release channel. 
 
 # Prerequisites
 
-The scripts use `bash`, Info-ZIP `zip` and `unzip`, `mktemp` (from GNU coreutils), `grep`, and `sed`. If `zip` is not installed, `patch-firefox.sh` can fall back to `python3`/`python` for repacking, but Python is optional and should not be assumed on target machines.
+The scripts use `bash`, `unzip`, `mktemp` (from GNU coreutils), `grep`, and `sed` for inspection and verification. Patching prefers Info-ZIP `zip` to rebuild `omni.ja`. If `zip` is not installed on Windows, `patch-firefox.sh` can rebuild the archive with PowerShell/.NET. Python is only a final optional fallback and should not be assumed on target machines.
+
+On Windows, a real patch or restore of a protected Firefox install can request administrator permission through a UAC prompt. `--status` and `--dry-run` do not request elevation and should work before you have write access.
 
 # Repository layout
 
-- `patch-firefox.sh`: edits Firefox `AppConstants`, verifies the replacement archive, then backs up `omni.ja` to `omni-orig.ja` and swaps in the patched archive.
-- `unpatch-firefox.sh`: restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
+- `patch-firefox.sh`: inspects status, dry-runs safely, edits Firefox `AppConstants`, verifies the replacement archive, then backs up `omni.ja` to `omni-orig.ja` and swaps in the patched archive.
+- `unpatch-firefox.sh`: inspects status, dry-runs safely, restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
 - `AGENTS.md`: rules for future automated work in this repository.
@@ -49,12 +51,15 @@ bash -n unpatch-firefox.sh
 If Firefox is in a common install location, start with:
 
 ```bash
+./patch-firefox.sh --status
 ./patch-firefox.sh --dry-run
+./patch-firefox.sh
 ```
 
 If the script cannot auto-detect the install directory, pass it explicitly:
 
 ```bash
+./patch-firefox.sh --status --mozilla-home "/path/to/firefox"
 ./patch-firefox.sh --dry-run --mozilla-home "/path/to/firefox"
 ./patch-firefox.sh --mozilla-home "/path/to/firefox"
 ```
@@ -62,7 +67,9 @@ If the script cannot auto-detect the install directory, pass it explicitly:
 On Windows with Git Bash, the default Firefox install is usually:
 
 ```bash
+./patch-firefox.sh --status --mozilla-home "/c/Program Files/Mozilla Firefox"
 ./patch-firefox.sh --dry-run --mozilla-home "/c/Program Files/Mozilla Firefox"
+./patch-firefox.sh --mozilla-home "/c/Program Files/Mozilla Firefox"
 ```
 
 # Patching
@@ -73,8 +80,9 @@ Follow the following steps to patch Firefox to disable addon signing.
 1. Configure Firefox not to auto-update using `about:preferences#general`, because you will now have additional manual steps to update (see the Updating section).
 1. Find the directory where you have installed Firefox. This is the path where `omni.ja` resides. On many installs it is also the directory containing the `firefox` binary.
 1. Ensure that you have exited from Firefox. The scripts refuse to modify `omni.ja` if Firefox appears to be running from `MOZILLA_HOME`.
+1. Run `patch-firefox.sh --status --mozilla-home /path/to/firefox` to inspect the archive, current signing constant, rollback backup, and Firefox process state without modifying anything.
 1. Run `patch-firefox.sh --dry-run --mozilla-home /path/to/firefox` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox. Dry run does not write to `MOZILLA_HOME`, so it should work even before you have admin/write access for the real patch.
-1. Run `patch-firefox.sh --mozilla-home /path/to/firefox`. If it works, the last line should be Done.
+1. Run `patch-firefox.sh --mozilla-home /path/to/firefox`. On Windows, the script requests UAC elevation automatically if the Firefox directory is protected. If it works, the last line should be Done.
 1. If you have an existing Firefox profile, you will also need to find your profile directory. The location depends on your configuration, but on Linux is usually a subdirectory of `~/.mozilla/firefox/`, called `xxxxxxxx.default`, where xxxxxxxx is replaced with a random string of characters.
 1. In that profile directory (if you have one already), you will need to delete the subdirectory called `startupCache`.
 1. Start Firefox.
@@ -89,8 +97,9 @@ Follow the following steps to patch Firefox to disable addon signing.
 You should continue to upgrade Firefox whenever it prompts you to upgrade it to ensure you have the latest security patches. However, before applying upgrades, you should:
 
 1. Exit from Firefox.
+1. Run `unpatch-firefox.sh --status --mozilla-home /path/to/firefox` to confirm that the install is currently patched and has a rollback backup.
 1. Run `unpatch-firefox.sh --dry-run --mozilla-home /path/to/firefox` to confirm that the backup can be staged for restore.
-1. Run `unpatch-firefox.sh --mozilla-home /path/to/firefox`
+1. Run `unpatch-firefox.sh --mozilla-home /path/to/firefox`. On Windows, the script requests UAC elevation automatically if the Firefox directory is protected.
 1. Start Firefox using the `-ProfileManager` option, and start it using a different profile - create a new one if necessary (don't start it with your normal profile as this will disable all your unsigned addons, and you will need to clear caches again).
 1. Apply the update.
 1. Run `patch-firefox.sh`

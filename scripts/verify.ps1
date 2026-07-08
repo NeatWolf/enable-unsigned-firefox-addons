@@ -9,6 +9,7 @@ $RequiredFiles = @(
     'unpatch-firefox.sh',
     'scripts\verify-fixture.sh',
     '.github\workflows\verify.yml',
+    '.github\dependabot.yml',
     'AGENTS.md',
     'CONTRIBUTING.md',
     '.editorconfig',
@@ -29,6 +30,7 @@ $PatchRequiredPatterns = @(
     '#!/usr/bin/env bash',
     'set -euo pipefail',
     '--dry-run',
+    '--status',
     '--mozilla-home',
     'resolve_mozilla_home',
     'Detected MOZILLA_HOME=',
@@ -46,8 +48,16 @@ $PatchRequiredPatterns = @(
     'omni.ja.new.$$',
     'assert_firefox_not_running',
     'SKIP_FIREFOX_PROCESS_CHECK',
+    'is_windows_admin',
+    'relaunch_elevated',
+    'ELEVATED_FIREFOX_PATCH',
+    'Requesting Windows administrator permission',
     'repack_omni',
     'verify_new_archive',
+    'print_status',
+    'app_constants_value',
+    'POWERSHELL_ZIP_BIN',
+    'ZipArchive',
     'ZIP_STORED'
 )
 
@@ -57,14 +67,14 @@ foreach ($Pattern in $PatchRequiredPatterns) {
     }
 }
 
-foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--mozilla-home', 'resolve_mozilla_home', 'Detected MOZILLA_HOME=', 'MOZILLA_HOME', 'omni.ja', 'omni-orig.ja', 'RESTORE_FILE', 'assert_firefox_not_running', 'SKIP_FIREFOX_PROCESS_CHECK', 'mv "$RESTORE_FILE" "$OMNI_FILE"', 'rm "$ORIGINAL_OMNI_FILE"')) {
+foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--status', '--mozilla-home', 'resolve_mozilla_home', 'Detected MOZILLA_HOME=', 'MOZILLA_HOME', 'omni.ja', 'omni-orig.ja', 'RESTORE_FILE', 'assert_firefox_not_running', 'SKIP_FIREFOX_PROCESS_CHECK', 'is_windows_admin', 'relaunch_elevated', 'ELEVATED_FIREFOX_PATCH', 'Requesting Windows administrator permission', 'print_status', 'app_constants_value', 'mv "$RESTORE_FILE" "$OMNI_FILE"', 'rm "$ORIGINAL_OMNI_FILE"')) {
     if (-not $UnpatchScript.Contains($Pattern)) {
         throw "unpatch-firefox.sh is missing expected rollback operation: $Pattern"
     }
 }
 
 $FixtureScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\verify-fixture.sh') -Raw
-foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'modern-dry-run-readonly-home', 'mozilla-home-argument', 'already-false', 'missing-appconstants', 'running-firefox-guard', '--dry-run')) {
+foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'modern-dry-run-readonly-home', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
     if (-not $FixtureScript.Contains($Pattern)) {
         throw "scripts\verify-fixture.sh is missing expected test coverage: $Pattern"
     }
@@ -77,8 +87,15 @@ foreach ($Pattern in @('actions/checkout@v4', 'bash -n patch-firefox.sh', 'bash 
     }
 }
 
+$DependabotConfig = Get-Content -LiteralPath (Join-Path $RepoRoot '.github\dependabot.yml') -Raw
+foreach ($Pattern in @('package-ecosystem: "github-actions"', 'interval: "monthly"')) {
+    if (-not $DependabotConfig.Contains($Pattern)) {
+        throw ".github\dependabot.yml is missing expected upkeep setting: $Pattern"
+    }
+}
+
 $SupportPolicy = Get-Content -LiteralPath (Join-Path $RepoRoot 'SUPPORT.md') -Raw
-foreach ($Pattern in @('provided as-is', 'no support commitment', 'patch-firefox.sh --dry-run')) {
+foreach ($Pattern in @('provided as-is', 'no support commitment', 'patch-firefox.sh --status', 'patch-firefox.sh --dry-run')) {
     if (-not $SupportPolicy.Contains($Pattern)) {
         throw "SUPPORT.md is missing expected policy text: $Pattern"
     }
@@ -126,7 +143,7 @@ if ($null -eq $UsableBash) {
         throw 'Bash syntax check failed for scripts\verify-fixture.sh.'
     }
 
-    $MissingTools = @(& $UsableBash -lc 'for tool in unzip mktemp sed grep; do command -v "$tool" >/dev/null 2>&1 || echo "$tool"; done; command -v zip >/dev/null 2>&1 || command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1 || echo "zip or python3/python"')
+    $MissingTools = @(& $UsableBash -lc 'for tool in unzip mktemp sed grep; do command -v "$tool" >/dev/null 2>&1 || echo "$tool"; done; command -v zip >/dev/null 2>&1 || command -v powershell.exe >/dev/null 2>&1 || command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1 || echo "zip, powershell.exe, or python3/python"')
     if ($MissingTools.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace(($MissingTools -join ''))) {
         Write-Warning "Skipped fixture verification because Bash is missing: $($MissingTools -join ', ')"
     } else {

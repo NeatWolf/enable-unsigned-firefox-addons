@@ -2,14 +2,19 @@
 set -euo pipefail
 
 DRY_RUN=0
+STATUS_MODE=0
 MOZILLA_HOME_ARG=""
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+SCRIPT_PATH="$SCRIPT_DIR/$(basename -- "${BASH_SOURCE[0]}")"
+ORIGINAL_ARGS=("$@")
 
 usage() {
     cat <<USAGE
-Usage: $0 [--dry-run] [--mozilla-home PATH]
+Usage: $0 [--dry-run|--status] [--mozilla-home PATH]
 
 Options:
   --dry-run              Build and verify a patched archive without modifying Firefox.
+  --status               Inspect the Firefox install without modifying it.
   --mozilla-home PATH    Firefox install directory containing omni.ja.
   -h, --help             Show this help.
 
@@ -22,6 +27,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --dry-run)
             DRY_RUN=1
+            shift
+            ;;
+        --status)
+            STATUS_MODE=1
             shift
             ;;
         --mozilla-home)
@@ -50,6 +59,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ $DRY_RUN -eq 1 && $STATUS_MODE -eq 1 ]]; then
+    echo "Use either --dry-run or --status, not both"
+    exit 1
+fi
 
 candidate_mozilla_homes() {
     local firefox_bin
@@ -113,27 +127,90 @@ resolve_mozilla_home() {
     esac
 }
 
-resolve_mozilla_home
+require_tools() {
+    local tool
+    for tool in "$@"; do
+        if ! command -v "$tool" > /dev/null 2>&1; then
+            echo "Couldn't find required tool: $tool"
+            exit 1
+        fi
+    done
+}
 
-for tool in cp grep mktemp mv rm sed tr unzip; do
-    if ! command -v "$tool" > /dev/null 2>&1; then
-        echo "Couldn't find required tool: $tool"
-        exit 1
+is_windows_admin() {
+    local result
+
+    if ! command -v powershell.exe > /dev/null 2>&1; then
+        return 1
     fi
-done
 
-ZIP_BIN=$(command -v zip || true)
-PYTHON_BIN=""
-if command -v python3 > /dev/null 2>&1; then
-    PYTHON_BIN=$(command -v python3)
-elif command -v python > /dev/null 2>&1; then
-    PYTHON_BIN=$(command -v python)
-fi
+    result=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '
+$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { "1" } else { "0" }
+' 2> /dev/null | tr -d '\r' || true)
 
-if [[ -z $ZIP_BIN && -z $PYTHON_BIN ]]; then
-    echo "Couldn't find a repacker. Install Info-ZIP zip, or install python3/python for the fallback repacker."
+    [[ $result == "1" ]]
+}
+
+bash_quote() {
+    printf '%q' "$1"
+}
+
+relaunch_elevated() {
+    local action=$1
+    local bash_win
+    local elevated_command
+    local arg
+
+    if [[ ${ELEVATED_FIREFOX_PATCH:-} == "1" ]]; then
+        return 1
+    fi
+
+    if ! command -v powershell.exe > /dev/null 2>&1 || ! command -v cygpath > /dev/null 2>&1; then
+        return 1
+    fi
+
+    if is_windows_admin; then
+        return 1
+    fi
+
+    bash_win=$(cygpath -w "$BASH")
+    elevated_command="cd $(bash_quote "$PWD") && MOZILLA_HOME=$(bash_quote "$MOZILLA_HOME") ELEVATED_FIREFOX_PATCH=1 $(bash_quote "$SCRIPT_PATH")"
+    for arg in "${ORIGINAL_ARGS[@]}"; do
+        elevated_command+=" $(bash_quote "$arg")"
+    done
+
+    echo "$action requires write access to $MOZILLA_HOME."
+    echo "Requesting Windows administrator permission..."
+    ELEVATED_BASH_WIN="$bash_win" ELEVATED_COMMAND="$elevated_command" powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '
+try {
+    $process = Start-Process -FilePath $env:ELEVATED_BASH_WIN -ArgumentList @("-lc", $env:ELEVATED_COMMAND) -Verb RunAs -Wait -PassThru
+    exit $process.ExitCode
+} catch {
+    Write-Error $_
     exit 1
-fi
+}
+'
+    exit $?
+}
+
+ensure_write_access_or_relaunch() {
+    local action=$1
+
+    if [[ -w $MOZILLA_HOME && -w $OMNI_FILE ]]; then
+        return
+    fi
+
+    if is_windows_admin; then
+        return
+    fi
+
+    relaunch_elevated "$action"
+
+    echo "$action requires write access to $MOZILLA_HOME."
+    echo "Approve the Windows UAC prompt, run Git Bash as Administrator, or use a Firefox install directory you can write to."
+    exit 1
+}
 
 firefox_is_running_for_home() {
     local mozilla_home=$1
@@ -189,66 +266,6 @@ if ($matches) { Write-Output $matches }
     return 1
 }
 
-assert_firefox_not_running() {
-    if firefox_is_running_for_home "$MOZILLA_HOME"; then
-        echo "Firefox appears to be running from $MOZILLA_HOME. Close Firefox before modifying omni.ja."
-        echo "Set SKIP_FIREFOX_PROCESS_CHECK=1 only if you have verified it is safe to continue."
-        exit 1
-    fi
-}
-
-if [[ ! -d $MOZILLA_HOME ]]; then
-    echo "Couldn't find directory $MOZILLA_HOME"
-    exit 1
-fi
-
-OMNI_FILE="$MOZILLA_HOME/omni.ja"
-ORIGINAL_OMNI_FILE="$MOZILLA_HOME/omni-orig.ja"
-NEW_OMNI_FILE=""
-TEMPDIR=""
-VERIFY_TEMPDIR=""
-
-cleanup() {
-    if [[ -n ${TEMPDIR:-} ]]; then
-        rm -rf "$TEMPDIR"
-    fi
-    if [[ -n ${VERIFY_TEMPDIR:-} ]]; then
-        rm -rf "$VERIFY_TEMPDIR"
-    fi
-    if [[ -n ${NEW_OMNI_FILE:-} ]]; then
-        rm -f "$NEW_OMNI_FILE"
-    fi
-}
-trap cleanup EXIT
-
-if [[ ! -f $OMNI_FILE ]]; then
-    echo "Couldn't find $OMNI_FILE"
-    exit 1
-fi
-
-if [[ -f $ORIGINAL_OMNI_FILE ]]; then
-    echo "Already patched?"
-    exit 1
-fi
-
-TEMPDIR=$(mktemp -d)
-if [[ ! -d $TEMPDIR ]]; then
-    echo "Couldn't create tempdir"
-    exit 1
-fi
-
-if [[ $DRY_RUN -eq 1 ]]; then
-    NEW_OMNI_FILE="${TEMPDIR}.omni.ja.new.$$"
-else
-    NEW_OMNI_FILE="$MOZILLA_HOME/omni.ja.new.$$"
-    if [[ -e $NEW_OMNI_FILE ]]; then
-        echo "Temporary output already exists: $NEW_OMNI_FILE"
-        exit 1
-    fi
-fi
-
-unzip -q -d "$TEMPDIR" "$OMNI_FILE" || true
-
 find_app_constants() {
     local root=$1
     local candidate
@@ -263,22 +280,53 @@ find_app_constants() {
     return 1
 }
 
-app_constants_is_false() {
+app_constants_value() {
     local app_constants_file=$1
     local signline
     local current_const
 
     if grep -Eq "^[[:space:]]*MOZ_REQUIRE_SIGNING:[[:space:]]*false," "$app_constants_file"; then
+        printf 'false\n'
+        return 0
+    fi
+
+    if grep -Eq "^[[:space:]]*MOZ_REQUIRE_SIGNING:[[:space:]]*true," "$app_constants_file"; then
+        printf 'true\n'
         return 0
     fi
 
     signline=$(grep -n "MOZ_REQUIRE_SIGNING:" "$app_constants_file" | cut -d: -f 1 | head -n 1 || true)
     if [[ -z $signline ]]; then
+        printf 'unknown\n'
         return 1
     fi
 
     current_const=$(sed -n "$((signline + 2))p" "$app_constants_file")
-    [[ $current_const == "  false," ]]
+    case "$current_const" in
+        "  false,")
+            printf 'false\n'
+            ;;
+        "  true,")
+            printf 'true\n'
+            ;;
+        *)
+            printf 'unknown\n'
+            return 1
+            ;;
+    esac
+}
+
+app_constants_is_false() {
+    local app_constants_file=$1
+    [[ $(app_constants_value "$app_constants_file") == "false" ]]
+}
+
+assert_firefox_not_running() {
+    if firefox_is_running_for_home "$MOZILLA_HOME"; then
+        echo "Firefox appears to be running from $MOZILLA_HOME. Close Firefox before modifying omni.ja."
+        echo "Set SKIP_FIREFOX_PROCESS_CHECK=1 only if you have verified it is safe to continue."
+        exit 1
+    fi
 }
 
 patch_require_signing() {
@@ -313,10 +361,60 @@ patch_require_signing() {
 
 repack_omni() {
     local target=$1
+    local powershell_root
+    local powershell_target
     local python_target=$target
 
     if [[ -n $ZIP_BIN ]]; then
         zip -0DXqr "$target" .
+        return
+    fi
+
+    if [[ -n $POWERSHELL_ZIP_BIN ]]; then
+        powershell_root=$PWD
+        powershell_target=$target
+        if command -v cygpath > /dev/null 2>&1; then
+            powershell_root=$(cygpath -w "$powershell_root")
+            powershell_target=$(cygpath -w "$powershell_target")
+        fi
+
+        OMNI_ROOT="$powershell_root" OMNI_TARGET="$powershell_target" "$POWERSHELL_ZIP_BIN" -NoProfile -ExecutionPolicy Bypass -Command '
+$ErrorActionPreference = "Stop"
+Add-Type -AssemblyName System.IO.Compression
+$root = [System.IO.Path]::GetFullPath($env:OMNI_ROOT).TrimEnd("\", "/")
+$target = [System.IO.Path]::GetFullPath($env:OMNI_TARGET)
+if (Test-Path -LiteralPath $target) {
+    Remove-Item -LiteralPath $target -Force
+}
+$stream = [System.IO.File]::Open($target, [System.IO.FileMode]::CreateNew)
+try {
+    $archive = New-Object System.IO.Compression.ZipArchive($stream, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        Get-ChildItem -LiteralPath $root -Recurse -File |
+            Sort-Object FullName |
+            ForEach-Object {
+                if ([System.String]::Equals($_.FullName, $target, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    return
+                }
+                $relative = $_.FullName.Substring($root.Length).TrimStart("\", "/").Replace("\", "/")
+                $entry = $archive.CreateEntry($relative, [System.IO.Compression.CompressionLevel]::NoCompression)
+                $entry.LastWriteTime = $_.LastWriteTime
+                $entryStream = $entry.Open()
+                $fileStream = [System.IO.File]::OpenRead($_.FullName)
+                try {
+                    $fileStream.CopyTo($entryStream)
+                } finally {
+                    $fileStream.Dispose()
+                    $entryStream.Dispose()
+                }
+            }
+    } finally {
+        $archive.Dispose()
+    }
+} finally {
+    $stream.Dispose()
+}
+'
         return
     fi
 
@@ -362,6 +460,128 @@ verify_new_archive() {
     rm -rf "$VERIFY_TEMPDIR"
     VERIFY_TEMPDIR=""
 }
+
+print_status() {
+    local app_constants_file
+    local require_signing
+
+    echo "MOZILLA_HOME=$MOZILLA_HOME"
+    echo "omni.ja: present"
+    if [[ -f $ORIGINAL_OMNI_FILE ]]; then
+        echo "omni-orig.ja: present"
+    else
+        echo "omni-orig.ja: absent"
+    fi
+
+    if firefox_is_running_for_home "$MOZILLA_HOME"; then
+        echo "firefox process: running from MOZILLA_HOME"
+    else
+        echo "firefox process: not detected for MOZILLA_HOME"
+    fi
+
+    app_constants_file=$(find_app_constants "$TEMPDIR" || true)
+    if [[ -z $app_constants_file ]]; then
+        echo "MOZ_REQUIRE_SIGNING: unknown (AppConstants not found)"
+        exit 1
+    fi
+
+    require_signing=$(app_constants_value "$app_constants_file" || true)
+    echo "MOZ_REQUIRE_SIGNING: $require_signing"
+
+    if [[ $require_signing == "false" && -f $ORIGINAL_OMNI_FILE ]]; then
+        echo "state: patched with rollback backup"
+    elif [[ $require_signing == "false" ]]; then
+        echo "state: patched without rollback backup"
+    elif [[ $require_signing == "true" && -f $ORIGINAL_OMNI_FILE ]]; then
+        echo "state: unpatched archive with leftover rollback backup"
+    elif [[ $require_signing == "true" ]]; then
+        echo "state: unpatched"
+    else
+        echo "state: unknown"
+        exit 1
+    fi
+}
+
+resolve_mozilla_home
+require_tools cut grep head mktemp rm sed tr unzip
+
+if [[ $STATUS_MODE -eq 0 ]]; then
+    require_tools cp mv
+    ZIP_BIN=$(command -v zip || true)
+    POWERSHELL_ZIP_BIN=$(command -v powershell.exe || true)
+    PYTHON_BIN=""
+    if command -v python3 > /dev/null 2>&1; then
+        PYTHON_BIN=$(command -v python3)
+    elif command -v python > /dev/null 2>&1; then
+        PYTHON_BIN=$(command -v python)
+    fi
+
+    if [[ -z $ZIP_BIN && -z $POWERSHELL_ZIP_BIN && -z $PYTHON_BIN ]]; then
+        echo "Couldn't find a repacker. Install Info-ZIP zip, use Windows PowerShell, or install python3/python for the fallback repacker."
+        exit 1
+    fi
+fi
+
+if [[ ! -d $MOZILLA_HOME ]]; then
+    echo "Couldn't find directory $MOZILLA_HOME"
+    exit 1
+fi
+
+OMNI_FILE="$MOZILLA_HOME/omni.ja"
+ORIGINAL_OMNI_FILE="$MOZILLA_HOME/omni-orig.ja"
+NEW_OMNI_FILE=""
+TEMPDIR=""
+VERIFY_TEMPDIR=""
+
+cleanup() {
+    if [[ -n ${TEMPDIR:-} ]]; then
+        rm -rf "$TEMPDIR"
+    fi
+    if [[ -n ${VERIFY_TEMPDIR:-} ]]; then
+        rm -rf "$VERIFY_TEMPDIR"
+    fi
+    if [[ -n ${NEW_OMNI_FILE:-} ]]; then
+        rm -f "$NEW_OMNI_FILE"
+    fi
+}
+trap cleanup EXIT
+
+if [[ ! -f $OMNI_FILE ]]; then
+    echo "Couldn't find $OMNI_FILE"
+    exit 1
+fi
+
+TEMPDIR=$(mktemp -d)
+if [[ ! -d $TEMPDIR ]]; then
+    echo "Couldn't create tempdir"
+    exit 1
+fi
+
+unzip -q -d "$TEMPDIR" "$OMNI_FILE" || true
+
+if [[ $STATUS_MODE -eq 1 ]]; then
+    print_status
+    exit 0
+fi
+
+if [[ -f $ORIGINAL_OMNI_FILE ]]; then
+    echo "Already patched?"
+    exit 1
+fi
+
+if [[ $DRY_RUN -eq 0 ]]; then
+    ensure_write_access_or_relaunch "Patching Firefox"
+fi
+
+if [[ $DRY_RUN -eq 1 ]]; then
+    NEW_OMNI_FILE="${TEMPDIR}.omni.ja.new.$$"
+else
+    NEW_OMNI_FILE="$MOZILLA_HOME/omni.ja.new.$$"
+    if [[ -e $NEW_OMNI_FILE ]]; then
+        echo "Temporary output already exists: $NEW_OMNI_FILE"
+        exit 1
+    fi
+fi
 
 APP_CONSTANTS_FILE=$(find_app_constants "$TEMPDIR" || true)
 if [[ -z $APP_CONSTANTS_FILE ]]; then

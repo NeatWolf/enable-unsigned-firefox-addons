@@ -11,6 +11,7 @@ cleanup() {
 trap cleanup EXIT
 
 ZIP_BIN=$(command -v zip || true)
+POWERSHELL_ZIP_BIN=$(command -v powershell.exe || true)
 PYTHON_BIN=""
 if command -v python3 > /dev/null 2>&1; then
     PYTHON_BIN=$(command -v python3)
@@ -18,17 +19,67 @@ elif command -v python > /dev/null 2>&1; then
     PYTHON_BIN=$(command -v python)
 fi
 
-if [[ -z $ZIP_BIN && -z $PYTHON_BIN ]]; then
-    echo "Couldn't find a repacker. Install Info-ZIP zip, or install python3/python for the fallback repacker."
+if [[ -z $ZIP_BIN && -z $POWERSHELL_ZIP_BIN && -z $PYTHON_BIN ]]; then
+    echo "Couldn't find a repacker. Install Info-ZIP zip, use Windows PowerShell, or install python3/python for the fallback repacker."
     exit 1
 fi
 
 make_omni() {
     local target=$1
+    local powershell_root
+    local powershell_target
     local python_target=$target
 
     if [[ -n $ZIP_BIN ]]; then
         zip -0DXqr "$target" .
+        return
+    fi
+
+    if [[ -n $POWERSHELL_ZIP_BIN ]]; then
+        powershell_root=$PWD
+        powershell_target=$target
+        if command -v cygpath > /dev/null 2>&1; then
+            powershell_root=$(cygpath -w "$powershell_root")
+            powershell_target=$(cygpath -w "$powershell_target")
+        fi
+
+        OMNI_ROOT="$powershell_root" OMNI_TARGET="$powershell_target" "$POWERSHELL_ZIP_BIN" -NoProfile -ExecutionPolicy Bypass -Command '
+$ErrorActionPreference = "Stop"
+Add-Type -AssemblyName System.IO.Compression
+$root = [System.IO.Path]::GetFullPath($env:OMNI_ROOT).TrimEnd("\", "/")
+$target = [System.IO.Path]::GetFullPath($env:OMNI_TARGET)
+if (Test-Path -LiteralPath $target) {
+    Remove-Item -LiteralPath $target -Force
+}
+$stream = [System.IO.File]::Open($target, [System.IO.FileMode]::CreateNew)
+try {
+    $archive = New-Object System.IO.Compression.ZipArchive($stream, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        Get-ChildItem -LiteralPath $root -Recurse -File |
+            Sort-Object FullName |
+            ForEach-Object {
+                if ([System.String]::Equals($_.FullName, $target, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    return
+                }
+                $relative = $_.FullName.Substring($root.Length).TrimStart("\", "/").Replace("\", "/")
+                $entry = $archive.CreateEntry($relative, [System.IO.Compression.CompressionLevel]::NoCompression)
+                $entry.LastWriteTime = $_.LastWriteTime
+                $entryStream = $entry.Open()
+                $fileStream = [System.IO.File]::OpenRead($_.FullName)
+                try {
+                    $fileStream.CopyTo($entryStream)
+                } finally {
+                    $fileStream.Dispose()
+                    $entryStream.Dispose()
+                }
+            }
+    } finally {
+        $archive.Dispose()
+    }
+} finally {
+    $stream.Dispose()
+}
+'
         return
     fi
 
@@ -164,6 +215,22 @@ assert_no_patch_side_effects() {
     fi
 }
 
+assert_output_contains() {
+    local name=$1
+    local output=$2
+    local expected=$3
+
+    case "$output" in
+        *"$expected"*)
+            ;;
+        *)
+            echo "$name: expected output to contain: $expected"
+            printf '%s\n' "$output"
+            exit 1
+            ;;
+    esac
+}
+
 run_roundtrip_fixture() {
     local name=$1
     local format=$2
@@ -194,6 +261,42 @@ run_roundtrip_fixture() {
     assert_app_constants_value "$name-restored" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
 }
 
+run_status_fixture() {
+    local name="status-mode"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+    local status_output
+
+    create_fixture "$name" "modern" "$app_constants_relpath"
+
+    status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --status --mozilla-home "$fixture_home")
+    assert_output_contains "$name-patch-unpatched" "$status_output" "MOZ_REQUIRE_SIGNING: true"
+    assert_output_contains "$name-patch-unpatched" "$status_output" "omni-orig.ja: absent"
+    assert_output_contains "$name-patch-unpatched" "$status_output" "state: unpatched"
+
+    status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$fixture_home")
+    assert_output_contains "$name-unpatch-unpatched" "$status_output" "MOZ_REQUIRE_SIGNING: true"
+    assert_output_contains "$name-unpatch-unpatched" "$status_output" "state: unpatched"
+
+    SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null
+
+    status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --status --mozilla-home "$fixture_home")
+    assert_output_contains "$name-patch-patched" "$status_output" "MOZ_REQUIRE_SIGNING: false"
+    assert_output_contains "$name-patch-patched" "$status_output" "omni-orig.ja: present"
+    assert_output_contains "$name-patch-patched" "$status_output" "state: patched with rollback backup"
+
+    status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$fixture_home")
+    assert_output_contains "$name-unpatch-patched" "$status_output" "MOZ_REQUIRE_SIGNING: false"
+    assert_output_contains "$name-unpatch-patched" "$status_output" "state: patched with rollback backup"
+
+    SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/unpatch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null
+
+    status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --status --mozilla-home "$fixture_home")
+    assert_output_contains "$name-patch-restored" "$status_output" "MOZ_REQUIRE_SIGNING: true"
+    assert_output_contains "$name-patch-restored" "$status_output" "omni-orig.ja: absent"
+    assert_output_contains "$name-patch-restored" "$status_output" "state: unpatched"
+}
+
 run_patch_dry_run_fixture() {
     local name="modern-dry-run"
     local app_constants_relpath="modules/AppConstants.sys.mjs"
@@ -204,6 +307,31 @@ run_patch_dry_run_fixture() {
     MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run > /dev/null
     assert_no_patch_side_effects "$name" "$fixture_home"
     assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
+}
+
+run_unpatch_dry_run_readonly_home_fixture() {
+    local name="unpatch-dry-run-readonly-home"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+
+    create_fixture "$name" "modern" "$app_constants_relpath"
+    SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null
+
+    chmod a-w "$fixture_home" || true
+    if ! "$REPO_ROOT/unpatch-firefox.sh" --dry-run --mozilla-home "$fixture_home" > /dev/null; then
+        chmod u+w "$fixture_home" || true
+        echo "$name: unpatch dry-run should not require write access to MOZILLA_HOME"
+        exit 1
+    fi
+
+    chmod u+w "$fixture_home" || true
+    if [[ ! -f "$fixture_home/omni-orig.ja" ]]; then
+        echo "$name: unpatch dry-run removed omni-orig.ja"
+        exit 1
+    fi
+    assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "false"
+
+    SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/unpatch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null
 }
 
 run_patch_dry_run_readonly_home_fixture() {
@@ -278,8 +406,10 @@ POWERSHELL
 
 run_roundtrip_fixture "modern-sysm" "modern" "modules/AppConstants.sys.mjs"
 run_roundtrip_fixture "legacy-jsm" "legacy" "modules/AppConstants.jsm"
+run_status_fixture
 run_patch_dry_run_fixture
 run_patch_dry_run_readonly_home_fixture
+run_unpatch_dry_run_readonly_home_fixture
 run_mozilla_home_argument_fixture
 run_patch_failure_fixture "already-false" "modern-false" "modules/AppConstants.sys.mjs"
 run_patch_failure_fixture "missing-appconstants" "missing" "modules/AppConstants.sys.mjs"
