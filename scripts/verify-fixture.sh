@@ -46,9 +46,10 @@ if target.exists():
     target.unlink()
 
 root = Path.cwd()
+target = target.resolve()
 with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_STORED) as archive:
     for path in sorted(root.rglob("*")):
-        if path.is_file():
+        if path.is_file() and path.resolve() != target:
             archive.write(path, path.relative_to(root).as_posix())
 PY
 }
@@ -156,6 +157,11 @@ assert_no_patch_side_effects() {
         echo "$name: left temporary replacement archive"
         exit 1
     fi
+
+    if compgen -G "$TEMPDIR/*.omni.ja.new.*" > /dev/null; then
+        echo "$name: left dry-run replacement archive"
+        exit 1
+    fi
 }
 
 run_roundtrip_fixture() {
@@ -196,6 +202,25 @@ run_patch_dry_run_fixture() {
     create_fixture "$name" "modern" "$app_constants_relpath"
 
     MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run > /dev/null
+    assert_no_patch_side_effects "$name" "$fixture_home"
+    assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
+}
+
+run_patch_dry_run_readonly_home_fixture() {
+    local name="modern-dry-run-readonly-home"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+
+    create_fixture "$name" "modern" "$app_constants_relpath"
+    chmod a-w "$fixture_home" || true
+
+    if ! MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run > /dev/null; then
+        chmod u+w "$fixture_home" || true
+        echo "$name: patch dry-run should not require write access to MOZILLA_HOME"
+        exit 1
+    fi
+
+    chmod u+w "$fixture_home" || true
     assert_no_patch_side_effects "$name" "$fixture_home"
     assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
 }
@@ -242,6 +267,7 @@ POWERSHELL
 run_roundtrip_fixture "modern-sysm" "modern" "modules/AppConstants.sys.mjs"
 run_roundtrip_fixture "legacy-jsm" "legacy" "modules/AppConstants.jsm"
 run_patch_dry_run_fixture
+run_patch_dry_run_readonly_home_fixture
 run_patch_failure_fixture "already-false" "modern-false" "modules/AppConstants.sys.mjs"
 run_patch_failure_fixture "missing-appconstants" "missing" "modules/AppConstants.sys.mjs"
 run_process_guard_fixture

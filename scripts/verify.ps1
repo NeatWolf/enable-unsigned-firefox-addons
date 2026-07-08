@@ -4,6 +4,7 @@ $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $RequiredFiles = @(
     'README.md',
+    'SUPPORT.md',
     'patch-firefox.sh',
     'unpatch-firefox.sh',
     'scripts\verify-fixture.sh',
@@ -60,7 +61,7 @@ foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', 
 }
 
 $FixtureScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\verify-fixture.sh') -Raw
-foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'already-false', 'missing-appconstants', 'running-firefox-guard', '--dry-run')) {
+foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'modern-dry-run-readonly-home', 'already-false', 'missing-appconstants', 'running-firefox-guard', '--dry-run')) {
     if (-not $FixtureScript.Contains($Pattern)) {
         throw "scripts\verify-fixture.sh is missing expected test coverage: $Pattern"
     }
@@ -70,6 +71,13 @@ $WorkflowScript = Get-Content -LiteralPath (Join-Path $RepoRoot '.github\workflo
 foreach ($Pattern in @('actions/checkout@v4', 'bash -n patch-firefox.sh', 'bash scripts/verify-fixture.sh')) {
     if (-not $WorkflowScript.Contains($Pattern)) {
         throw ".github\workflows\verify.yml is missing expected CI step: $Pattern"
+    }
+}
+
+$SupportPolicy = Get-Content -LiteralPath (Join-Path $RepoRoot 'SUPPORT.md') -Raw
+foreach ($Pattern in @('provided as-is', 'no support commitment', 'patch-firefox.sh --dry-run')) {
+    if (-not $SupportPolicy.Contains($Pattern)) {
+        throw "SUPPORT.md is missing expected policy text: $Pattern"
     }
 }
 

@@ -53,13 +53,12 @@ firefox_is_running_for_home() {
 
         ps_output=$(MOZILLA_HOME_WIN="$mozilla_home_win" powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '
 $target = [System.IO.Path]::GetFullPath($env:MOZILLA_HOME_WIN).TrimEnd("\", "/")
-$matches = Get-CimInstance Win32_Process |
+$matches = Get-Process -Name firefox -ErrorAction SilentlyContinue |
     Where-Object {
-        $_.Name -eq "firefox.exe" -and
-        $_.ExecutablePath -and
-        [System.IO.Path]::GetDirectoryName($_.ExecutablePath).TrimEnd("\", "/").Equals($target, [System.StringComparison]::OrdinalIgnoreCase)
+        $_.Path -and
+        [System.IO.Path]::GetDirectoryName($_.Path).TrimEnd("\", "/").Equals($target, [System.StringComparison]::OrdinalIgnoreCase)
     } |
-    Select-Object -First 1 -ExpandProperty ProcessId
+    Select-Object -First 1 -ExpandProperty Id
 if ($matches) { Write-Output $matches }
 ' 2> /dev/null | tr -d '\r' || true)
 

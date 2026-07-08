@@ -66,13 +66,12 @@ firefox_is_running_for_home() {
 
         ps_output=$(MOZILLA_HOME_WIN="$mozilla_home_win" powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '
 $target = [System.IO.Path]::GetFullPath($env:MOZILLA_HOME_WIN).TrimEnd("\", "/")
-$matches = Get-CimInstance Win32_Process |
+$matches = Get-Process -Name firefox -ErrorAction SilentlyContinue |
     Where-Object {
-        $_.Name -eq "firefox.exe" -and
-        $_.ExecutablePath -and
-        [System.IO.Path]::GetDirectoryName($_.ExecutablePath).TrimEnd("\", "/").Equals($target, [System.StringComparison]::OrdinalIgnoreCase)
+        $_.Path -and
+        [System.IO.Path]::GetDirectoryName($_.Path).TrimEnd("\", "/").Equals($target, [System.StringComparison]::OrdinalIgnoreCase)
     } |
-    Select-Object -First 1 -ExpandProperty ProcessId
+    Select-Object -First 1 -ExpandProperty Id
 if ($matches) { Write-Output $matches }
 ' 2> /dev/null | tr -d '\r' || true)
 
@@ -115,7 +114,7 @@ fi
 
 OMNI_FILE="$MOZILLA_HOME/omni.ja"
 ORIGINAL_OMNI_FILE="$MOZILLA_HOME/omni-orig.ja"
-NEW_OMNI_FILE="$MOZILLA_HOME/omni.ja.new.$$"
+NEW_OMNI_FILE=""
 TEMPDIR=""
 VERIFY_TEMPDIR=""
 
@@ -142,15 +141,20 @@ if [[ -f $ORIGINAL_OMNI_FILE ]]; then
     exit 1
 fi
 
-if [[ -e $NEW_OMNI_FILE ]]; then
-    echo "Temporary output already exists: $NEW_OMNI_FILE"
-    exit 1
-fi
-
 TEMPDIR=$(mktemp -d)
 if [[ ! -d $TEMPDIR ]]; then
     echo "Couldn't create tempdir"
     exit 1
+fi
+
+if [[ $DRY_RUN -eq 1 ]]; then
+    NEW_OMNI_FILE="${TEMPDIR}.omni.ja.new.$$"
+else
+    NEW_OMNI_FILE="$MOZILLA_HOME/omni.ja.new.$$"
+    if [[ -e $NEW_OMNI_FILE ]]; then
+        echo "Temporary output already exists: $NEW_OMNI_FILE"
+        exit 1
+    fi
 fi
 
 unzip -q -d "$TEMPDIR" "$OMNI_FILE" || true
@@ -240,9 +244,10 @@ if target.exists():
     target.unlink()
 
 root = Path.cwd()
+target = target.resolve()
 with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_STORED) as archive:
     for path in sorted(root.rglob("*")):
-        if path.is_file():
+        if path.is_file() and path.resolve() != target:
             archive.write(path, path.relative_to(root).as_posix())
 PY
 }

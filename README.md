@@ -6,6 +6,8 @@ This lets you modify your local Firefox installation so that you can use a stand
 
 You probably only want to do this if you are a developer of add-ons (for example, of your own personal addons you want to run locally but not share with Mozilla for signing).
 
+This project is provided as-is, with no support commitment and no guarantee that it will keep working with future Firefox releases.
+
 # About unsigned addon support
 
 The standard release channel builds of Firefox now have a setting built into them that means that all addons must be signed by Mozilla, and this setting cannot be changed by simple means (including through settings in `about:config`).
@@ -25,6 +27,7 @@ The scripts use `bash`, Info-ZIP `zip` and `unzip`, `mktemp` (from GNU coreutils
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
 - `AGENTS.md`: rules for future automated work in this repository.
+- `SUPPORT.md`: support policy and as-is notice.
 
 # Verify changes
 
@@ -50,7 +53,7 @@ Follow the following steps to patch Firefox to disable addon signing.
 1. Find the directory where you have installed Firefox. This is the path where the `firefox` binary resides (excluding the name of the binary - so it is the path to the directory and not the binary).
 1. Run `export MOZILLA_HOME=/path/to/firefox`, substituting the directory in place of `/path/to/firefox`.
 1. Ensure that you have exited from Firefox. The scripts refuse to modify `omni.ja` if Firefox appears to be running from `MOZILLA_HOME`.
-1. Run `patch-firefox.sh --dry-run` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox.
+1. Run `patch-firefox.sh --dry-run` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox. Dry run does not write to `MOZILLA_HOME`, so it should work even before you have admin/write access for the real patch.
 1. Run the `patch-firefox.sh` script. If it works, the last line should be Done.
 1. If you have an existing Firefox profile, you will also need to find your profile directory. The location depends on your configuration, but on Linux is usually a subdirectory of `~/.mozilla/firefox/`, called `xxxxxxxx.default`, where xxxxxxxx is replaced with a random string of characters.
 1. In that profile directory (if you have one already), you will need to delete the subdirectory called `startupCache`.
