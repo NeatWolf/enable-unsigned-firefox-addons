@@ -18,6 +18,7 @@ $RequiredFiles = @(
     'clear-startup-cache.sh',
     'set-unsigned-addon-pref.sh',
     'scripts\verify-fixture.sh',
+    'scripts\debug-choice-beep.cmd',
     '.github\workflows-disabled\verify.yml',
     '.github\dependabot-disabled.yml',
     '.github\ISSUE_TEMPLATE\config.yml',
@@ -43,6 +44,7 @@ $UnpatchLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'unpatch-firefo
 $StartupCacheLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'clear-startup-cache.cmd') -Raw
 $UnsignedAddonPrefLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'set-unsigned-addon-pref.cmd') -Raw
 $StartWindowsLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'START-WINDOWS.cmd') -Raw
+$DebugChoiceLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\debug-choice-beep.cmd') -Raw
 
 $License = Get-Content -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Raw
 foreach ($Pattern in @('Source-Available Showcase License', 'Copyright (c) 2026 NeatWolf', 'personal local testing only', 'artificial-intelligence training', 'provided as-is')) {
@@ -194,6 +196,23 @@ foreach ($Pattern in @('Firefox profiles are separate user-data folders.', 'allo
 foreach ($Pattern in @('@echo off', 'Enable Unsigned Firefox Add-ons', 'choice /C 123456789ABCPHQ /N', 'Check Firefox patch status', 'Test setup with dry run', 'Apply full setup (patch, profile, cache)', 'Show Firefox profiles and add-on setting', 'Pick a profile and set add-on setting', 'Check startup cache', 'Preview startup cache cleanup', 'Clear startup cache', 'Check restore status', 'Test restore with dry run', 'Restore Firefox from rollback backup', 'Open README', 'A Firefox profile is a separate Firefox user-data folder', 'This is the full setup step', 'administrator approval during the patch step', 'That administrator prompt may mention Windows PowerShell', 'only the local script runner', 'this is not a Git download, update, or sign-in', 'Startup cache cleanup does not delete bookmarks, passwords, history', 'set-unsigned-addon-pref.cmd" --list-profiles', 'set-unsigned-addon-pref.cmd" --profile "%SELECTED_PROFILE%"', 'patch-firefox.cmd" --status', 'patch-firefox.cmd" --dry-run', 'clear-startup-cache.cmd" --status', 'clear-startup-cache.cmd" --dry-run', 'unpatch-firefox.cmd" --status', 'unpatch-firefox.cmd" --dry-run', ':assert_patch_applied', 'Verifying Firefox patch', 'Firefox patch verified', 'Profile and cache steps were not run', 'Full setup finished', ':run_menu_check', 'findstr /V /B /C:"next step:"', 'Dry run checks passed.', 'Tested profile:', 'choose option 3 from this menu', 'choose the same one unless', 'There is no extra phase after it', 'start "" "%~dp0README.md"', 'pause')) {
     if (-not $StartWindowsLauncher.Contains($Pattern)) {
         throw "START-WINDOWS.cmd is missing expected menu behavior: $Pattern"
+    }
+}
+
+$DebugChoiceOutput = & cmd.exe /d /c "`"$RepoRoot\scripts\debug-choice-beep.cmd`" --help" 2>&1
+$DebugChoiceExitCode = $LASTEXITCODE
+$DebugChoiceText = $DebugChoiceOutput -join "`n"
+if ($DebugChoiceExitCode -ne 0) {
+    throw "debug-choice-beep.cmd failed with exit code $DebugChoiceExitCode."
+}
+foreach ($Pattern in @('Usage: scripts\debug-choice-beep.cmd', 'system bell on invalid keys', 'does not touch Firefox')) {
+    if (-not $DebugChoiceText.Contains($Pattern)) {
+        throw "debug-choice-beep.cmd output is missing: $Pattern"
+    }
+}
+foreach ($Pattern in @('@echo off', 'Debug-only Windows choice prompt test.', 'does not touch Firefox', 'choice /C %~2 /N /M "%~3"', 'YN', '123Q', '123456789Q', 'ABCDQ')) {
+    if (-not $DebugChoiceLauncher.Contains($Pattern)) {
+        throw "scripts\debug-choice-beep.cmd is missing expected debug behavior: $Pattern"
     }
 }
 
