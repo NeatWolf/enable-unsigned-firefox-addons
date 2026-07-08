@@ -167,6 +167,12 @@ assert_firefox_not_running() {
     fi
 }
 
+warn_if_firefox_running_for_dry_run() {
+    if firefox_is_running; then
+        echo "warning: Firefox appears to be running. Close Firefox before running cleanup for real."
+    fi
+}
+
 add_profile_dir() {
     local profile_dir=$1
 
@@ -362,7 +368,9 @@ if [[ ${#CACHE_DIRS[@]} -eq 0 ]]; then
     exit 0
 fi
 
-if [[ $DRY_RUN -eq 0 ]]; then
+if [[ $DRY_RUN -eq 1 ]]; then
+    warn_if_firefox_running_for_dry_run
+else
     assert_firefox_not_running
 fi
 

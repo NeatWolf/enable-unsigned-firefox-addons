@@ -628,6 +628,15 @@ PROFILES_INI
         exit 1
     fi
 
+    dry_run_output=$(PATH="$fake_bin:$PATH" "$REPO_ROOT/clear-startup-cache.sh" --dry-run --profile "$guard_profile")
+    assert_output_contains "$name-running-dry-run" "$dry_run_output" "warning: Firefox appears to be running. Close Firefox before running cleanup for real."
+    assert_output_contains "$name-running-dry-run" "$dry_run_output" "Would remove $guard_profile/startupCache"
+    assert_output_contains "$name-running-dry-run" "$dry_run_output" "Dry run OK"
+    if [[ ! -d "$guard_profile/startupCache" ]]; then
+        echo "$name: running dry-run removed startupCache"
+        exit 1
+    fi
+
     dry_run_output=$("$REPO_ROOT/clear-startup-cache.sh" --dry-run --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $relative_profile/startupCache"
     assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $absolute_profile/startupCache"

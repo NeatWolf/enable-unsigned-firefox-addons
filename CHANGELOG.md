@@ -11,6 +11,7 @@
 - Added next-step status hints for patch, restore, and running-Firefox states.
 - Added startupCache status counts and next-step hints.
 - Added a running Firefox guard before real startupCache cleanup.
+- Added a startupCache dry-run warning when Firefox is still running.
 - Added dry-run success hints that point to the matching real command.
 - Added success next-step hints after patching, restoring, and startup-cache cleanup.
 - Clarified that a successful restore removes `omni-orig.ja`.
