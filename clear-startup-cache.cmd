@@ -50,6 +50,7 @@ rem Windows users often arrive here by double-clicking the launcher.
 rem Ask before removing startupCache folders from Firefox profiles.
 echo.
 echo This will delete Firefox profile startupCache folders found by the script.
+echo Firefox must be closed before clearing startupCache.
 echo Run --dry-run first to see exactly what would be removed.
 choice /C YN /N /M "Continue? [Y/N] "
 if errorlevel 2 (

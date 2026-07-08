@@ -134,6 +134,39 @@ candidate_profiles_ini_files() {
     printf '%s\n' "$HOME/Library/Application Support/Firefox/profiles.ini"
 }
 
+firefox_is_running() {
+    local ps_output
+
+    if [[ ${SKIP_FIREFOX_PROCESS_CHECK:-} == "1" ]]; then
+        return 1
+    fi
+
+    if command -v powershell.exe > /dev/null 2>&1; then
+        ps_output=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '
+$match = Get-Process -Name firefox -ErrorAction SilentlyContinue |
+    Select-Object -First 1 -ExpandProperty Id
+if ($match) { Write-Output $match }
+' 2> /dev/null || true)
+        ps_output=${ps_output//$'\r'/}
+        [[ -n $ps_output ]]
+        return
+    fi
+
+    if command -v pgrep > /dev/null 2>&1 && pgrep -x firefox > /dev/null 2>&1; then
+        return 0
+    fi
+
+    return 1
+}
+
+assert_firefox_not_running() {
+    if firefox_is_running; then
+        echo "Firefox appears to be running. Close Firefox before clearing startupCache."
+        echo "Set SKIP_FIREFOX_PROCESS_CHECK=1 only if you have verified it is safe to continue."
+        exit 1
+    fi
+}
+
 add_profile_dir() {
     local profile_dir=$1
 
@@ -270,6 +303,7 @@ print_status() {
     local profile_dir
     local cache_dir
     local cache_count=0
+    local firefox_running=0
 
     echo "profiles: ${#PROFILE_DIRS[@]}"
     for profile_dir in "${PROFILE_DIRS[@]}"; do
@@ -284,7 +318,16 @@ print_status() {
     done
 
     echo "startupCache directories: $cache_count"
-    if [[ $cache_count -gt 0 ]]; then
+    if firefox_is_running; then
+        echo "firefox process: running"
+        firefox_running=1
+    else
+        echo "firefox process: not detected"
+    fi
+
+    if [[ $cache_count -gt 0 && $firefox_running -eq 1 ]]; then
+        echo "next step: close Firefox before clearing startupCache."
+    elif [[ $cache_count -gt 0 ]]; then
         echo "next step: run this script with --dry-run to preview startupCache cleanup."
     else
         echo "next step: no startupCache cleanup needed."
@@ -317,6 +360,10 @@ done < <(startup_cache_dirs)
 if [[ ${#CACHE_DIRS[@]} -eq 0 ]]; then
     echo "No startupCache directories found."
     exit 0
+fi
+
+if [[ $DRY_RUN -eq 0 ]]; then
+    assert_firefox_not_running
 fi
 
 for cache_dir in "${CACHE_DIRS[@]}"; do

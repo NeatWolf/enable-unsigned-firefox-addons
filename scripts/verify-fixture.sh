@@ -561,6 +561,9 @@ run_startup_cache_fixture() {
     local remove_output
     local direct_remove_output
     local empty_profiles_ini="$TEMPDIR/$name/empty-profiles.ini"
+    local guard_profile="$TEMPDIR/$name/running-firefox.default"
+    local fake_bin="$TEMPDIR/$name/fake-bin"
+    local guard_status_output
     local windows_ini
     local windows_profile
     local windows_direct_profile
@@ -572,12 +575,20 @@ run_startup_cache_fixture() {
         "$relative_profile/startupCache" \
         "$absolute_profile/startupCache" \
         "$stray_profile/startupCache" \
-        "$direct_profile/startupCache"
+        "$direct_profile/startupCache" \
+        "$guard_profile/startupCache" \
+        "$fake_bin"
 
     echo "cache" > "$relative_profile/startupCache/startupCache.8.little"
     echo "cache" > "$absolute_profile/startupCache/startupCache.8.little"
     echo "cache" > "$stray_profile/startupCache/startupCache.8.little"
     echo "cache" > "$direct_profile/startupCache/startupCache.8.little"
+    echo "cache" > "$guard_profile/startupCache/startupCache.8.little"
+    cat > "$fake_bin/powershell.exe" <<'POWERSHELL'
+#!/usr/bin/env bash
+echo 12345
+POWERSHELL
+    chmod +x "$fake_bin/powershell.exe"
 
     cat > "$firefox_data/profiles.ini" <<PROFILES_INI
 [Profile0]
@@ -596,12 +607,26 @@ PROFILES_INI
     assert_output_contains "$name-empty-status" "$status_output" "No Firefox profiles found."
     assert_output_contains "$name-empty-status" "$status_output" "next step: pass --profile or --profiles-ini if Firefox uses an unusual profile location."
 
-    status_output=$("$REPO_ROOT/clear-startup-cache.sh" --status --profiles-ini "$firefox_data/profiles.ini")
+    status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/clear-startup-cache.sh" --status --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-status" "$status_output" "profiles: 2"
     assert_output_contains "$name-status" "$status_output" "startupCache: present $relative_profile/startupCache"
     assert_output_contains "$name-status" "$status_output" "startupCache: present $absolute_profile/startupCache"
     assert_output_contains "$name-status" "$status_output" "startupCache directories: 2"
+    assert_output_contains "$name-status" "$status_output" "firefox process: not detected"
     assert_output_contains "$name-status" "$status_output" "next step: run this script with --dry-run to preview startupCache cleanup."
+
+    guard_status_output=$(PATH="$fake_bin:$PATH" "$REPO_ROOT/clear-startup-cache.sh" --status --profile "$guard_profile")
+    assert_output_contains "$name-running-status" "$guard_status_output" "firefox process: running"
+    assert_output_contains "$name-running-status" "$guard_status_output" "next step: close Firefox before clearing startupCache."
+
+    if PATH="$fake_bin:$PATH" "$REPO_ROOT/clear-startup-cache.sh" --profile "$guard_profile" > /dev/null 2> /dev/null; then
+        echo "$name: startupCache cleanup unexpectedly succeeded while Firefox was reported running"
+        exit 1
+    fi
+    if [[ ! -d "$guard_profile/startupCache" ]]; then
+        echo "$name: process guard removed startupCache"
+        exit 1
+    fi
 
     dry_run_output=$("$REPO_ROOT/clear-startup-cache.sh" --dry-run --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $relative_profile/startupCache"
@@ -614,7 +639,7 @@ PROFILES_INI
         exit 1
     fi
 
-    remove_output=$("$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$firefox_data/profiles.ini")
+    remove_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-remove" "$remove_output" "Removed $relative_profile/startupCache"
     assert_output_contains "$name-remove" "$remove_output" "Removed $absolute_profile/startupCache"
     assert_output_contains "$name-remove" "$remove_output" "Done"
@@ -632,16 +657,16 @@ PROFILES_INI
     clean_output=$("$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-clean" "$clean_output" "No startupCache directories found."
 
-    status_output=$("$REPO_ROOT/clear-startup-cache.sh" --status --profiles-ini "$firefox_data/profiles.ini")
+    status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/clear-startup-cache.sh" --status --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-clean-status" "$status_output" "startupCache directories: 0"
     assert_output_contains "$name-clean-status" "$status_output" "next step: no startupCache cleanup needed."
 
-    status_output=$("$REPO_ROOT/clear-startup-cache.sh" --status --profile "$direct_profile")
+    status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/clear-startup-cache.sh" --status --profile "$direct_profile")
     assert_output_contains "$name-direct-status" "$status_output" "profiles: 1"
     assert_output_contains "$name-direct-status" "$status_output" "startupCache: present $direct_profile/startupCache"
     assert_output_contains "$name-direct-status" "$status_output" "startupCache directories: 1"
 
-    direct_remove_output=$("$REPO_ROOT/clear-startup-cache.sh" --profile "$direct_profile")
+    direct_remove_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/clear-startup-cache.sh" --profile "$direct_profile")
     assert_output_contains "$name-direct-remove" "$direct_remove_output" "next step: start Firefox and verify MOZ_REQUIRE_SIGNING if you just patched Firefox."
     if [[ -d "$direct_profile/startupCache" ]]; then
         echo "$name: explicit profile startupCache was not removed"
@@ -670,13 +695,13 @@ PROFILES_INI
         dry_run_output=$("$REPO_ROOT/clear-startup-cache.sh" --dry-run --profiles-ini "$windows_ini_arg")
         assert_output_contains "$name-windows-dry-run" "$dry_run_output" "Would remove $windows_profile/startupCache"
 
-        "$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$windows_ini_arg" > /dev/null
+        SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$windows_ini_arg" > /dev/null
         if [[ -d "$windows_profile/startupCache" ]]; then
             echo "$name: Windows profiles.ini path startupCache was not removed"
             exit 1
         fi
 
-        "$REPO_ROOT/clear-startup-cache.sh" --profile "$windows_direct_profile_arg" > /dev/null
+        SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/clear-startup-cache.sh" --profile "$windows_direct_profile_arg" > /dev/null
         if [[ -d "$windows_direct_profile/startupCache" ]]; then
             echo "$name: Windows --profile startupCache was not removed"
             exit 1
