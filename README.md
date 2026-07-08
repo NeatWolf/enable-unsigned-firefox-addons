@@ -4,9 +4,11 @@
 
 Patch a local Firefox Release install so unsigned addons can be loaded without switching to Developer Edition.
 
-> Warning: This modifies a local Firefox install. Future Firefox releases can break it. This project is provided as-is, with no support commitment and no compatibility guarantee. Keep your own backup or be ready to reinstall Firefox. See `LICENSE` and `SUPPORT.md`.
+> Warning: This modifies a local Firefox install. Future Firefox releases can break it.
+>
+> This project is provided as-is, with no support commitment and no compatibility guarantee. Keep your own backup or be ready to reinstall Firefox. See [LICENSE](LICENSE) and [SUPPORT.md](SUPPORT.md).
 
-# Quick start
+## Quick start
 
 Windows PowerShell or Command Prompt:
 
@@ -44,11 +46,11 @@ If auto-detection does not find Firefox, pass the install directory explicitly:
 
 Bash accepts the same `--mozilla-home /path/to/firefox` option.
 
-For patch and restore commands, pass the Firefox install folder that contains `omni.ja`. For startup-cache cleanup, pass a Firefox profile directory or a `profiles.ini` file when auto-detection is not enough. The Windows launchers accept normal Windows install paths such as `C:\Program Files\Mozilla Firefox`; the scripts normalize them when needed.
+For patch and restore commands, pass the Firefox install folder that contains `omni.ja`. For startup-cache cleanup, pass a Firefox profile directory or a `profiles.ini` file when auto-detection is not enough. Windows paths such as `C:\Program Files\Mozilla Firefox` are accepted and normalized when needed.
 
 Git for Windows includes Git Bash. The `.cmd` launchers use Git Bash and intentionally skip WSL bash.
 
-# About unsigned addon support
+## About unsigned addon support
 
 The standard release channel builds of Firefox now have a setting built into them that means that all addons must be signed by Mozilla, and this setting cannot be changed by simple means (including through settings in `about:config`).
 
@@ -56,13 +58,13 @@ The standard release channel builds of Firefox now have a setting built into the
 
 This repo exists for the narrower case where you intentionally want a standard release channel Firefox and still need to run your own unsigned local addons.
 
-# Prerequisites
+## Prerequisites
 
-The scripts use `bash`, `unzip`, `mktemp` (from GNU coreutils), `grep`, and `sed` for inspection and verification. Patching prefers Info-ZIP `zip` to rebuild `omni.ja`. If `zip` is not installed on Windows, `patch-firefox.sh` can rebuild the archive with PowerShell/.NET. Python is only a final optional fallback and should not be assumed on target machines.
+The scripts need `bash`, `unzip`, `mktemp` (from GNU coreutils), `grep`, and `sed` for inspection and verification. Patching prefers Info-ZIP `zip` to rebuild `omni.ja`. On Windows, if `zip` is not installed, `patch-firefox.sh` can use PowerShell/.NET instead. Python is only a final optional fallback and should not be assumed on target machines.
 
 On Windows, a real patch or restore of a protected Firefox install can request administrator permission through a UAC prompt. `--status` and `--dry-run` do not request elevation and should work before you have write access. If Firefox is still open, real patch and restore commands stop before rebuilding or restoring files.
 
-# Repository layout
+## Repository layout
 
 - `patch-firefox.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `patch-firefox.sh`.
 - `unpatch-firefox.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `unpatch-firefox.sh`.
@@ -82,7 +84,7 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `SUPPORT.md`: support policy and as-is notice.
 - `SECURITY.md`: security policy and supported-version notice.
 
-# Verify changes
+## Verify changes
 
 Run the local repository checks after making changes:
 
@@ -97,7 +99,7 @@ bash -n patch-firefox.sh
 bash -n unpatch-firefox.sh
 ```
 
-# Patching
+## Patching
 
 Follow the following steps to patch Firefox to disable addon signing.
 
@@ -118,7 +120,7 @@ Follow the following steps to patch Firefox to disable addon signing.
 1. Copy your extension into the extensions subdirectory of your Firefox profile directory.
 1. Restart Firefox. Firefox will prompt to confirm that you want to enable the addon.
 
-# Upgrading Firefox
+## Upgrading Firefox
 
 You should continue to upgrade Firefox whenever it prompts you to upgrade it to ensure you have the latest security patches. However, before applying upgrades, you should:
 

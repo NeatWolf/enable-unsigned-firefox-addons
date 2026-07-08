@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Refined README heading hierarchy and presentation wording.
 - Polished README first-screen layout and added a GitHub social preview asset.
 - Added MIT license and stronger as-is/no-support repo boundary.
 - Hardened omni.ja extraction so corrupt archives cannot pass dry-run verification.
