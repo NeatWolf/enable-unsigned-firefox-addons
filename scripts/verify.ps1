@@ -8,6 +8,7 @@ $RequiredFiles = @(
     'CODE_OF_CONDUCT.md',
     'MAINTENANCE.md',
     'SUPPORT.md',
+    'LICENSE',
     'patch-firefox.cmd',
     'unpatch-firefox.cmd',
     'clear-startup-cache.cmd',
@@ -39,6 +40,13 @@ $StartupCacheScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'clear-start
 $PatchLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'patch-firefox.cmd') -Raw
 $UnpatchLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'unpatch-firefox.cmd') -Raw
 $StartupCacheLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'clear-startup-cache.cmd') -Raw
+
+$License = Get-Content -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Raw
+foreach ($Pattern in @('MIT License', 'Copyright (c) 2026 NeatWolf', 'THE SOFTWARE IS PROVIDED "AS IS"')) {
+    if (-not $License.Contains($Pattern)) {
+        throw "LICENSE is missing expected MIT/no-warranty text: $Pattern"
+    }
+}
 
 $PatchRequiredPatterns = @(
     '#!/usr/bin/env bash',
@@ -90,6 +98,12 @@ $PatchRequiredPatterns = @(
     'build id:',
     'app_constants_value',
     'extract_omni',
+    'unzip_status',
+    'extra bytes at beginning or within zipfile',
+    'find_app_constants "$target_dir"',
+    "Couldn't extract",
+    'unzip reported warnings that are not safe to ignore',
+    'unzip failed with exit code',
     'print_extract_details',
     'Extraction details',
     'POWERSHELL_ZIP_BIN',
@@ -103,7 +117,7 @@ foreach ($Pattern in $PatchRequiredPatterns) {
     }
 }
 
-foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--status', '--mozilla-home', 'resolve_mozilla_home', 'normalize_mozilla_home_path', 'cygpath -u "$value"', 'Detected MOZILLA_HOME=', 'MOZILLA_HOME', 'omni.ja', 'omni-orig.ja', 'RESTORE_FILE', 'No rollback backup found', 'Nothing was restored', 'assert_firefox_not_running', 'SKIP_FIREFOX_PROCESS_CHECK', 'is_windows_admin', 'relaunch_elevated', 'ELEVATED_FIREFOX_PATCH', 'Requesting Windows administrator permission', 'write_access_status', 'write access:', 'Expected a directory containing omni.ja', 'Pass the folder that contains omni.ja', 'print_restore_next_step', 'next step:', 'without --dry-run to restore Firefox', 'update Firefox, then patch again if unsigned addons are still needed', 'print_status', 'application_ini_value', 'application.ini', 'application:', 'build id:', 'app_constants_value', 'extract_omni', 'print_extract_details', 'Extraction details', 'mv "$RESTORE_FILE" "$OMNI_FILE"', 'rm "$ORIGINAL_OMNI_FILE"')) {
+foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--status', '--mozilla-home', 'resolve_mozilla_home', 'normalize_mozilla_home_path', 'cygpath -u "$value"', 'Detected MOZILLA_HOME=', 'MOZILLA_HOME', 'omni.ja', 'omni-orig.ja', 'RESTORE_FILE', 'No rollback backup found', 'Nothing was restored', 'assert_firefox_not_running', 'SKIP_FIREFOX_PROCESS_CHECK', 'is_windows_admin', 'relaunch_elevated', 'ELEVATED_FIREFOX_PATCH', 'Requesting Windows administrator permission', 'write_access_status', 'write access:', 'Expected a directory containing omni.ja', 'Pass the folder that contains omni.ja', 'print_restore_next_step', 'next step:', 'without --dry-run to restore Firefox', 'update Firefox, then patch again if unsigned addons are still needed', 'print_status', 'application_ini_value', 'application.ini', 'application:', 'build id:', 'app_constants_value', 'extract_omni', 'unzip_status', 'extra bytes at beginning or within zipfile', 'find_app_constants "$target_dir"', "Couldn't extract", 'unzip reported warnings that are not safe to ignore', 'unzip failed with exit code', 'print_extract_details', 'Extraction details', 'mv "$RESTORE_FILE" "$OMNI_FILE"', 'rm "$ORIGINAL_OMNI_FILE"')) {
     if (-not $UnpatchScript.Contains($Pattern)) {
         throw "unpatch-firefox.sh is missing expected rollback operation: $Pattern"
     }
@@ -173,14 +187,14 @@ try {
 }
 
 $FixtureScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\verify-fixture.sh') -Raw
-foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'application: Firefox 99.0', 'build id: 20260101000000', 'write access: available', 'repacker:', 'next step:', 'clear Firefox startupCache before starting Firefox', 'Removed rollback backup:', 'update Firefox, then patch again if unsigned addons are still needed', 'start Firefox and verify MOZ_REQUIRE_SIGNING', 'close Firefox before patching', 'close Firefox before restoring', 'close Firefox before clearing startupCache', 'without --dry-run to patch Firefox', 'without --dry-run to restore Firefox', 'without --dry-run to clear the listed startupCache directories', 'preview startupCache cleanup', 'no startupCache cleanup needed', 'if Firefox uses an unusual profile location', 'path-errors', 'Pass the folder that contains omni.ja', 'Pass a Firefox profile directory', 'Pass a Firefox profiles.ini file', 'Patch refused because rollback backup already exists', 'No rollback backup found', 'MOZ_REQUIRE_SIGNING is already false in AppConstants.', 'modern-dry-run-readonly-home', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'windows_home', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'running-firefox-unpatch-guard', 'startup-cache-profiles-ini', 'startupCache: present', 'firefox process: running', 'running-dry-run', 'warning: Firefox appears to be running. Close Firefox before running cleanup for real.', 'running dry-run removed startupCache', 'windows-absolute', 'Windows --profile', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
+foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'application: Firefox 99.0', 'build id: 20260101000000', 'write access: available', 'repacker:', 'next step:', 'clear Firefox startupCache before starting Firefox', 'Removed rollback backup:', 'update Firefox, then patch again if unsigned addons are still needed', 'start Firefox and verify MOZ_REQUIRE_SIGNING', 'close Firefox before patching', 'close Firefox before restoring', 'close Firefox before clearing startupCache', 'without --dry-run to patch Firefox', 'without --dry-run to restore Firefox', 'without --dry-run to clear the listed startupCache directories', 'preview startupCache cleanup', 'no startupCache cleanup needed', 'if Firefox uses an unusual profile location', 'path-errors', 'Pass the folder that contains omni.ja', 'Pass a Firefox profile directory', 'Pass a Firefox profiles.ini file', 'Patch refused because rollback backup already exists', 'No rollback backup found', 'MOZ_REQUIRE_SIGNING is already false in AppConstants.', 'modern-dry-run-readonly-home', 'prefixed-omni-warning', 'corrupt-omni-crc', 'CORRUPTME_PAYLOAD', 'corrupt archive still reported Dry run OK', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'windows_home', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'running-firefox-unpatch-guard', 'startup-cache-profiles-ini', 'startupCache: present', 'firefox process: running', 'running-dry-run', 'warning: Firefox appears to be running. Close Firefox before running cleanup for real.', 'running dry-run removed startupCache', 'windows-absolute', 'Windows --profile', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
     if (-not $FixtureScript.Contains($Pattern)) {
         throw "scripts\verify-fixture.sh is missing expected test coverage: $Pattern"
     }
 }
 
 $WorkflowScript = Get-Content -LiteralPath (Join-Path $RepoRoot '.github\workflows\verify.yml') -Raw
-foreach ($Pattern in @('actions/checkout@v4', 'bash -n patch-firefox.sh', 'bash -n clear-startup-cache.sh', 'bash scripts/verify-fixture.sh')) {
+foreach ($Pattern in @('actions/checkout@v4', 'bash -n patch-firefox.sh', 'bash -n clear-startup-cache.sh', 'bash scripts/verify-fixture.sh', 'windows-latest', 'powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1')) {
     if (-not $WorkflowScript.Contains($Pattern)) {
         throw ".github\workflows\verify.yml is missing expected CI step: $Pattern"
     }
@@ -208,21 +222,21 @@ foreach ($Pattern in @('Verification', 'verify.ps1', 'Did not patch a normal Fir
 }
 
 $SupportPolicy = Get-Content -LiteralPath (Join-Path $RepoRoot 'SUPPORT.md') -Raw
-foreach ($Pattern in @('provided as-is', 'no support commitment', 'asks for confirmation', 'modifying files', 'patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'patch-firefox.sh --status', 'patch-firefox.sh --dry-run', 'clear-startup-cache.cmd --status', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run')) {
+foreach ($Pattern in @('provided as-is', 'no support commitment', 'no help desk', 'no compatibility guarantee', 'restore from your own backup', 'reinstall Firefox', 'patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'patch-firefox.sh --status', 'patch-firefox.sh --dry-run', 'Python is optional', 'Administrator permission is not required')) {
     if (-not $SupportPolicy.Contains($Pattern)) {
         throw "SUPPORT.md is missing expected policy text: $Pattern"
     }
 }
 
 $Changelog = Get-Content -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md') -Raw
-foreach ($Pattern in @('Changelog', 'Unreleased', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'matching dry-run command', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
+foreach ($Pattern in @('Changelog', 'Unreleased', 'MIT license', 'as-is/no-support', 'corrupt archives', 'Windows CI', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'matching dry-run command', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
     if (-not $Changelog.Contains($Pattern)) {
         throw "CHANGELOG.md is missing expected summary text: $Pattern"
     }
 }
 
 $MaintenanceNotes = Get-Content -LiteralPath (Join-Path $RepoRoot 'MAINTENANCE.md') -Raw
-foreach ($Pattern in @('maintained as-is', 'verify.ps1', 'Python optional', 'PowerShell/.NET fallback', 'CHANGELOG.md')) {
+foreach ($Pattern in @('maintained as-is', 'verify.ps1', 'Python optional', 'PowerShell/.NET fallback', 'CHANGELOG.md', 'disable Issues and Discussions', 'GitHub repository settings')) {
     if (-not $MaintenanceNotes.Contains($Pattern)) {
         throw "MAINTENANCE.md is missing expected maintenance note: $Pattern"
     }
@@ -243,7 +257,7 @@ foreach ($Pattern in @('No supported versions', 'provided as-is', 'Report Firefo
 }
 
 $Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
-foreach ($Pattern in @('patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'matching `--dry-run` command', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'CHANGELOG.md', 'CODE_OF_CONDUCT.md', 'MAINTENANCE.md', 'pull_request_template.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
+foreach ($Pattern in @('This modifies a local Firefox install', 'no compatibility guarantee', 'Keep your own backup or be ready to reinstall Firefox', 'LICENSE', 'SUPPORT.md', 'patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'matching `--dry-run` command', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'CHANGELOG.md', 'CODE_OF_CONDUCT.md', 'MAINTENANCE.md', 'pull_request_template.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
     if (-not $Readme.Contains($Pattern)) {
         throw "README.md is missing expected Windows launcher guidance: $Pattern"
     }

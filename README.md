@@ -6,7 +6,7 @@ This lets you modify your local Firefox installation so that you can use a stand
 
 You probably only want to do this if you are a developer of add-ons (for example, of your own personal addons you want to run locally but not share with Mozilla for signing).
 
-This project is provided as-is, with no support commitment and no guarantee that it will keep working with future Firefox releases.
+This modifies a local Firefox install. Future Firefox releases can break it. This project is provided as-is, with no support commitment and no compatibility guarantee. Keep your own backup or be ready to reinstall Firefox. See `LICENSE` and `SUPPORT.md`.
 
 # About unsigned addon support
 
@@ -38,6 +38,7 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `.github/ISSUE_TEMPLATE/config.yml`: disables blank GitHub issues and points readers back to the as-is support policy.
 - `.github/pull_request_template.md`: contribution checklist for narrow, verified script changes.
 - `AGENTS.md`: rules for future automated work in this repository.
+- `LICENSE`: MIT license and no-warranty notice.
 - `SUPPORT.md`: support policy and as-is notice.
 - `SECURITY.md`: security policy and supported-version notice.
 

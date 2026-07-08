@@ -411,11 +411,31 @@ extract_omni() {
     local archive=$1
     local target_dir=$2
     local log_file=$3
+    local unzip_status
 
-    # Firefox omni.ja often emits harmless unzip warnings; callers validate
-    # AppConstants after extraction and print this log only on real failures.
+    # Firefox omni.ja can include a small prefix that Info-ZIP reports as a
+    # warning. Other extraction warnings are not safe to ignore.
     : > "$log_file"
-    unzip -q -d "$target_dir" "$archive" > /dev/null 2> "$log_file" || true
+    unzip_status=0
+    unzip -q -d "$target_dir" "$archive" > /dev/null 2> "$log_file" || unzip_status=$?
+    if [[ $unzip_status -eq 0 ]]; then
+        return
+    fi
+
+    if [[ $unzip_status -eq 1 ]] &&
+        grep -Fq "extra bytes at beginning or within zipfile" "$log_file" &&
+        find_app_constants "$target_dir" > /dev/null 2>&1; then
+        return
+    fi
+
+    echo "Couldn't extract $archive cleanly."
+    if [[ $unzip_status -eq 1 ]]; then
+        echo "unzip reported warnings that are not safe to ignore."
+    else
+        echo "unzip failed with exit code $unzip_status."
+    fi
+    print_extract_details "$log_file"
+    exit 1
 }
 
 print_extract_details() {

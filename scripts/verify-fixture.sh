@@ -359,6 +359,66 @@ run_patch_dry_run_fixture() {
     assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
 }
 
+run_prefixed_archive_fixture() {
+    local name="prefixed-omni-warning"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+    local clean_archive="$TEMPDIR/$name/clean.omni.ja"
+    local dry_run_output
+
+    create_fixture "$name" "modern" "$app_constants_relpath"
+    mv "$fixture_home/omni.ja" "$clean_archive"
+    printf 'firefox omni prefix\n' > "$fixture_home/omni.ja"
+    cat "$clean_archive" >> "$fixture_home/omni.ja"
+
+    dry_run_output=$(MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run)
+    assert_output_contains "$name" "$dry_run_output" "Dry run OK"
+    assert_output_contains "$name" "$dry_run_output" "next step: run the same command without --dry-run to patch Firefox."
+    assert_no_patch_side_effects "$name" "$fixture_home"
+}
+
+run_corrupt_archive_fixture() {
+    local name="corrupt-omni-crc"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+    local omni_source="$TEMPDIR/$name/omni-source"
+    local payload_offset
+    local patch_output
+
+    mkdir -p "$fixture_home" "$omni_source/modules"
+    cat > "$fixture_home/application.ini" <<'APPLICATION_INI'
+[App]
+Name=Firefox
+Version=99.0
+BuildID=20260101000000
+APPLICATION_INI
+    write_app_constants "modern" "$omni_source/$app_constants_relpath"
+    printf 'CORRUPTME_PAYLOAD\n' > "$omni_source/modules/Damaged.txt"
+
+    pushd "$omni_source" > /dev/null
+    make_omni "$fixture_home/omni.ja"
+    popd > /dev/null
+
+    payload_offset=$(grep -abo "CORRUPTME_PAYLOAD" "$fixture_home/omni.ja" | head -n 1 | cut -d: -f 1 || true)
+    if [[ -z $payload_offset ]]; then
+        echo "$name: couldn't find stored payload to damage"
+        exit 1
+    fi
+    printf X | dd of="$fixture_home/omni.ja" bs=1 seek="$payload_offset" count=1 conv=notrunc > /dev/null 2>&1
+
+    if patch_output=$(MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run 2>&1); then
+        echo "$name: patch dry-run unexpectedly succeeded for corrupt archive"
+        printf '%s\n' "$patch_output"
+        exit 1
+    fi
+    assert_output_contains "$name" "$patch_output" "Couldn't extract $fixture_home/omni.ja cleanly."
+    if [[ $patch_output == *"Dry run OK"* ]]; then
+        echo "$name: corrupt archive still reported Dry run OK"
+        exit 1
+    fi
+    assert_no_patch_side_effects "$name" "$fixture_home"
+}
+
 run_unpatch_dry_run_readonly_home_fixture() {
     local name="unpatch-dry-run-readonly-home"
     local app_constants_relpath="modules/AppConstants.sys.mjs"
@@ -722,6 +782,8 @@ run_roundtrip_fixture "modern-sysm" "modern" "modules/AppConstants.sys.mjs"
 run_roundtrip_fixture "legacy-jsm" "legacy" "modules/AppConstants.jsm"
 run_status_fixture
 run_patch_dry_run_fixture
+run_prefixed_archive_fixture
+run_corrupt_archive_fixture
 run_patch_dry_run_readonly_home_fixture
 run_unpatch_dry_run_readonly_home_fixture
 run_mozilla_home_argument_fixture

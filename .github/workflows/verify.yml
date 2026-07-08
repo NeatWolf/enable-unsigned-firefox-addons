@@ -31,3 +31,14 @@ jobs:
 
       - name: Run fixture verifier
         run: bash scripts/verify-fixture.sh
+
+  windows:
+    name: Windows verifier
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run PowerShell verifier
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1

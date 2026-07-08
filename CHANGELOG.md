@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Added MIT license and stronger as-is/no-support repo boundary.
+- Hardened omni.ja extraction so corrupt archives cannot pass dry-run verification.
+- Added Windows CI for the PowerShell repository verifier.
 - Added safer Windows launchers with confirmation prompts for file-changing actions.
 - Added matching dry-run command hints to Windows confirmation prompts.
 - Improved Windows launcher guidance when Git Bash is missing.
