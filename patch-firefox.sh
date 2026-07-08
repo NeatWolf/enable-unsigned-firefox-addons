@@ -756,3 +756,4 @@ fi
 NEW_OMNI_FILE=""
 
 echo Done
+echo "next step: clear Firefox startupCache before starting Firefox."

@@ -560,3 +560,4 @@ RESTORE_FILE=""
 rm "$ORIGINAL_OMNI_FILE"
 
 echo Done
+echo "next step: update Firefox, then patch again if unsigned addons are still needed."

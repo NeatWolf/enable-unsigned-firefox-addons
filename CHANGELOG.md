@@ -11,6 +11,7 @@
 - Added next-step status hints for patch, restore, and running-Firefox states.
 - Added startupCache status counts and next-step hints.
 - Added dry-run success hints that point to the matching real command.
+- Added success next-step hints after patching, restoring, and startup-cache cleanup.
 - Hardened `omni.ja` patching with rollback backups, verified replacement archives, and temporary-file cleanup.
 - Supported modern `AppConstants.sys.mjs` and legacy `AppConstants.jsm` layouts.
 - Added PowerShell/.NET archive rebuilding on Windows when Info-ZIP `zip` is unavailable.

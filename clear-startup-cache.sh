@@ -328,4 +328,5 @@ if [[ $DRY_RUN -eq 1 ]]; then
     echo "next step: run the same command without --dry-run to clear the listed startupCache directories."
 else
     echo Done
+    echo "next step: start Firefox and verify MOZ_REQUIRE_SIGNING if you just patched Firefox."
 fi

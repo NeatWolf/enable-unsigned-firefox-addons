@@ -73,6 +73,8 @@ You can also double-click a `.cmd` launcher. If it fails when launched that way,
 
 The Windows launchers ask for confirmation before modifying files. `--status`, `--dry-run`, and `--help` do not ask and do not change Firefox.
 
+Successful commands print the next practical step before exiting.
+
 If the Windows launcher cannot auto-detect the install directory, pass it explicitly:
 
 ```powershell

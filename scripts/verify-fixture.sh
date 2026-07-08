@@ -258,10 +258,14 @@ run_roundtrip_fixture() {
     local format=$2
     local app_constants_relpath=$3
     local fixture_home="$TEMPDIR/$name/firefox"
+    local patch_output
+    local unpatch_output
 
     create_fixture "$name" "$format" "$app_constants_relpath"
 
-    SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" > /dev/null
+    patch_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh")
+    assert_output_contains "$name-patch-output" "$patch_output" "Done"
+    assert_output_contains "$name-patch-output" "$patch_output" "next step: clear Firefox startupCache before starting Firefox."
     if [[ ! -f "$fixture_home/omni-orig.ja" ]]; then
         echo "$name: patch did not create omni-orig.ja"
         exit 1
@@ -278,7 +282,9 @@ run_roundtrip_fixture() {
     fi
     assert_app_constants_value "$name-unpatch-dry-run" "$fixture_home/omni.ja" "$app_constants_relpath" "false"
 
-    SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/unpatch-firefox.sh" > /dev/null
+    unpatch_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/unpatch-firefox.sh")
+    assert_output_contains "$name-unpatch-output" "$unpatch_output" "Done"
+    assert_output_contains "$name-unpatch-output" "$unpatch_output" "next step: update Firefox, then patch again if unsigned addons are still needed."
     if [[ -f "$fixture_home/omni-orig.ja" ]]; then
         echo "$name: unpatch did not remove omni-orig.ja"
         exit 1
@@ -551,6 +557,8 @@ run_startup_cache_fixture() {
     local dry_run_output
     local status_output
     local clean_output
+    local remove_output
+    local direct_remove_output
     local empty_profiles_ini="$TEMPDIR/$name/empty-profiles.ini"
     local windows_ini
     local windows_profile
@@ -605,7 +613,11 @@ PROFILES_INI
         exit 1
     fi
 
-    "$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$firefox_data/profiles.ini" > /dev/null
+    remove_output=$("$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-remove" "$remove_output" "Removed $relative_profile/startupCache"
+    assert_output_contains "$name-remove" "$remove_output" "Removed $absolute_profile/startupCache"
+    assert_output_contains "$name-remove" "$remove_output" "Done"
+    assert_output_contains "$name-remove" "$remove_output" "next step: start Firefox and verify MOZ_REQUIRE_SIGNING if you just patched Firefox."
     if [[ -d "$relative_profile/startupCache" || -d "$absolute_profile/startupCache" ]]; then
         echo "$name: listed startupCache directory was not removed"
         exit 1
@@ -628,7 +640,8 @@ PROFILES_INI
     assert_output_contains "$name-direct-status" "$status_output" "startupCache: present $direct_profile/startupCache"
     assert_output_contains "$name-direct-status" "$status_output" "startupCache directories: 1"
 
-    "$REPO_ROOT/clear-startup-cache.sh" --profile "$direct_profile" > /dev/null
+    direct_remove_output=$("$REPO_ROOT/clear-startup-cache.sh" --profile "$direct_profile")
+    assert_output_contains "$name-direct-remove" "$direct_remove_output" "next step: start Firefox and verify MOZ_REQUIRE_SIGNING if you just patched Firefox."
     if [[ -d "$direct_profile/startupCache" ]]; then
         echo "$name: explicit profile startupCache was not removed"
         exit 1
