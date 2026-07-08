@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed Windows elevation detection so real patch and restore commands request administrator approval before writing inside protected `Program Files` Firefox installs.
+- Clarified that dry run does not prove Windows write access to `Program Files`; the real patch may still need UAC approval.
 - Added a Windows profile picker so users can choose the Firefox profile that should allow unsigned add-ons.
 - Added clearer wording that startup cache is rebuildable Firefox startup data and does not include bookmarks, passwords, history, form data, settings, cookies, add-ons, or profiles.
 - Handled Firefox omni.ja archives that Info-ZIP reports as prefixed while still rejecting unexpected extraction warnings.

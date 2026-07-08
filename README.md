@@ -44,7 +44,7 @@ On Windows:
 1. Choose `3` to patch Firefox. The menu asks again which Firefox profile should allow unsigned add-ons.
 1. Use `A`, `B`, and `C` later when you want to restore Firefox before updating it.
 
-The menu opens in the correct folder automatically. Real patch, restore, preference, and cache-cleanup actions ask before changing files. If Windows needs administrator permission for a protected Firefox install, the launcher requests it when the real action starts.
+The menu opens in the correct folder automatically. Real patch, restore, preference, and cache-cleanup actions ask before changing files. Option 2 does not change Firefox and does not need administrator permission. Option 3 may still ask Windows for administrator approval when Firefox is installed under `C:\Program Files\Mozilla Firefox`; that approval is what allows the script to replace Firefox program files.
 
 ## What gets changed
 
@@ -116,7 +116,7 @@ This repo exists for the narrower case where you intentionally want a standard r
 
 The scripts need `bash`, `unzip`, `mktemp` (from GNU coreutils), `grep`, and `sed` for inspection and verification. Patching prefers Info-ZIP `zip` to rebuild `omni.ja`. On Windows, if `zip` is not installed, `patch-firefox.sh` can use PowerShell/.NET instead. Python is only a final optional fallback and should not be assumed on target machines.
 
-On Windows, a real patch or restore of a protected Firefox install can request administrator permission through a UAC prompt. `--status` and `--dry-run` do not request elevation and should work before you have write access. If Firefox is still open, real patch and restore commands stop before rebuilding or restoring files.
+On Windows, a real patch or restore of a protected Firefox install can request administrator permission through a UAC prompt. This is normal for Firefox installs under `C:\Program Files\Mozilla Firefox`. `--status` and `--dry-run` do not request elevation and should work before you have write access. Passing dry run means the archive can be read, rebuilt in a temporary folder, and verified; it does not mean Windows has already allowed writes to `Program Files`. If Firefox is still open, real patch and restore commands stop before rebuilding or restoring files.
 
 ## Repository layout
 

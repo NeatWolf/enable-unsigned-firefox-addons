@@ -528,12 +528,14 @@ run_mozilla_home_argument_fixture() {
         windows_home=$(cygpath -w "$fixture_home")
 
         status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 env -u MOZILLA_HOME "$REPO_ROOT/patch-firefox.sh" --status --mozilla-home "$windows_home")
+        assert_output_contains "$name-windows-status-home" "$status_output" "MOZILLA_HOME=$fixture_home"
         assert_output_contains "$name-windows-status" "$status_output" "MOZ_REQUIRE_SIGNING: true"
 
         env -u MOZILLA_HOME "$REPO_ROOT/patch-firefox.sh" --dry-run --mozilla-home "$windows_home" > /dev/null
         assert_no_patch_side_effects "$name-windows-dry-run" "$fixture_home"
 
         status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$windows_home" "$REPO_ROOT/unpatch-firefox.sh" --status)
+        assert_output_contains "$name-windows-env-status-home" "$status_output" "MOZILLA_HOME=$fixture_home"
         assert_output_contains "$name-windows-env-status" "$status_output" "MOZ_REQUIRE_SIGNING: true"
     fi
 }

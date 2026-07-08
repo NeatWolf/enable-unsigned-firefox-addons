@@ -161,6 +161,8 @@ goto menu
 echo.
 echo This will patch the Firefox program files, ask which Firefox profile
 echo should allow unsigned add-ons, and clear rebuildable startup cache.
+echo If Firefox is installed under Program Files, Windows may ask for
+echo administrator approval during the patch step.
 echo.
 echo A Firefox profile is a separate Firefox user-data folder. Choose the
 echo profile where you will install the unsigned add-on.

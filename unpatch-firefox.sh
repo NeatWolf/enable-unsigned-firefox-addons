@@ -94,16 +94,17 @@ normalize_mozilla_home_path() {
         return
     fi
 
+    if command -v cygpath > /dev/null 2>&1 && [[ $value =~ ^[A-Za-z]:[\\/] || $value =~ ^\\\\ ]]; then
+        cygpath -u "$value"
+        return
+    fi
+
     if [[ -d $value ]]; then
         printf '%s\n' "$value"
         return
     fi
 
-    if command -v cygpath > /dev/null 2>&1 && [[ $value =~ ^[A-Za-z]:[\\/] || $value =~ ^\\\\ ]]; then
-        cygpath -u "$value"
-    else
-        printf '%s\n' "$value"
-    fi
+    printf '%s\n' "$value"
 }
 
 resolve_mozilla_home() {
@@ -172,6 +173,49 @@ if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
     [[ $result == "1" ]]
 }
 
+windows_protected_install_path() {
+    local lower_home
+
+    if ! command -v powershell.exe > /dev/null 2>&1; then
+        return 1
+    fi
+
+    lower_home=$(printf '%s' "$MOZILLA_HOME" | tr '[:upper:]' '[:lower:]')
+    case "$lower_home" in
+        /?/program\ files/*|/?/program\ files\ \(x86\)/*|/mnt/?/program\ files/*|/mnt/?/program\ files\ \(x86\)/*)
+            return 0
+            ;;
+    esac
+
+    return 1
+}
+
+can_write_mozilla_home() {
+    local probe="$MOZILLA_HOME/.enable-unsigned-firefox-addons-write-test.$$"
+    local probe_win
+    local status=0
+
+    if [[ -e $probe ]]; then
+        return 1
+    fi
+
+    if command -v powershell.exe > /dev/null 2>&1 && command -v cygpath > /dev/null 2>&1; then
+        probe_win=$(cygpath -w "$probe")
+        FIREFOX_PATCH_WRITE_PROBE="$probe_win" powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '
+$ErrorActionPreference = "Stop"
+$path = $env:FIREFOX_PATCH_WRITE_PROBE
+$stream = [System.IO.File]::Open($path, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+$stream.Dispose()
+Remove-Item -LiteralPath $path -Force
+' > /dev/null 2>&1 || status=$?
+        rm -f "$probe" > /dev/null 2>&1 || true
+        return "$status"
+    fi
+
+    : > "$probe" 2> /dev/null || return 1
+    rm -f "$probe" > /dev/null 2>&1
+}
+
 bash_quote() {
     printf '%q' "$1"
 }
@@ -217,12 +261,14 @@ try {
 ensure_write_access_or_relaunch() {
     local action=$1
 
-    if [[ -w $MOZILLA_HOME && -w $OMNI_FILE ]]; then
+    if can_write_mozilla_home; then
         return
     fi
 
     if is_windows_admin; then
-        return
+        echo "$action requires write access to $MOZILLA_HOME, but a test write failed."
+        echo "Check the Firefox install folder permissions or use a writable Firefox install directory."
+        exit 1
     fi
 
     relaunch_elevated "$action"
@@ -233,7 +279,9 @@ ensure_write_access_or_relaunch() {
 }
 
 write_access_status() {
-    if [[ -w $MOZILLA_HOME && -w $OMNI_FILE ]]; then
+    if windows_protected_install_path && ! is_windows_admin; then
+        printf 'requires administrator permission for real patch or restore\n'
+    elif [[ -w $MOZILLA_HOME && -w $OMNI_FILE ]]; then
         printf 'available\n'
     elif is_windows_admin; then
         printf 'available as administrator\n'
