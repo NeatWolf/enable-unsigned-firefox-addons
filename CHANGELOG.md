@@ -2,10 +2,12 @@
 
 ## Unreleased
 
+- Replaced the MIT license with a source-available showcase license and removed contribution-oriented files.
+- Added static README badges for source availability, no support, dry-run-first use, and no AI training.
 - Parked GitHub Actions and the related Dependabot config while hosted Actions are unavailable.
 - Refined README heading hierarchy and presentation wording.
 - Polished README first-screen layout and added a GitHub social preview asset.
-- Added MIT license and stronger as-is/no-support repo boundary.
+- Added stronger as-is/no-support repo boundary.
 - Hardened omni.ja extraction so corrupt archives cannot pass dry-run verification.
 - Added Windows CI for the PowerShell repository verifier.
 - Added safer Windows launchers with confirmation prompts for file-changing actions.

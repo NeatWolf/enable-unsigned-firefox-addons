@@ -1,10 +1,17 @@
-# enable unsigned Firefox addons
+# Enable Unsigned Firefox Add-ons
 
-Patch a local Firefox Release install so unsigned addons can be loaded without switching to Developer Edition.
+![Source Available](https://img.shields.io/badge/source-available-2f6f9f)
+![No Support](https://img.shields.io/badge/support-none-6b7280)
+![Dry Run First](https://img.shields.io/badge/safety-dry--run%20first-2ea043)
+![No AI Training](https://img.shields.io/badge/AI%20training-no-b42318)
+
+Patch a local Firefox Release install so unsigned add-ons can be loaded without switching to Developer Edition.
 
 > Warning: This modifies a local Firefox install. Future Firefox releases can break it.
 >
 > This project is provided as-is, with no support commitment and no compatibility guarantee. Keep your own backup or be ready to reinstall Firefox. See [LICENSE](LICENSE) and [SUPPORT.md](SUPPORT.md).
+
+This is source-available showcase software, not an open-source project. The license allows viewing and personal local testing of unmodified copies only. It forbids redistribution, modified versions, published forks, and AI training use.
 
 ## Quick start
 
@@ -48,13 +55,13 @@ For patch and restore commands, pass the Firefox install folder that contains `o
 
 Git for Windows includes Git Bash. The `.cmd` launchers use Git Bash and intentionally skip WSL bash.
 
-## About unsigned addon support
+## About Unsigned Add-on Support
 
-The standard release channel builds of Firefox now have a setting built into them that means that all addons must be signed by Mozilla, and this setting cannot be changed by simple means (including through settings in `about:config`).
+The standard release channel builds of Firefox require add-ons to be signed by Mozilla. That requirement cannot be disabled by simple settings, including `about:config`.
 
 [Firefox Developer Edition](https://www.mozilla.org/en-US/firefox/developer/) doesn't have this limitation. You can install unsigned extensions by downloading Firefox Developer Edition and then toggle `xpinstall.signatures.required` to false in `about:config`. The Developer Edition is effectively a beta release channel, and is updated nightly.
 
-This repo exists for the narrower case where you intentionally want a standard release channel Firefox and still need to run your own unsigned local addons.
+This repo exists for the narrower case where you intentionally want a standard release channel Firefox and still need to run your own unsigned local add-ons.
 
 ## Prerequisites
 
@@ -71,16 +78,14 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `unpatch-firefox.sh`: inspects status, dry-runs safely, restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
 - `clear-startup-cache.sh`: inspects or clears Firefox profile `startupCache` directories listed in `profiles.ini`, with status and dry-run support.
 - `CHANGELOG.md`: high-level summary of user-visible script and repository changes.
-- `CODE_OF_CONDUCT.md`: contribution conduct note that keeps discussion factual and out of support scope.
 - `MAINTENANCE.md`: short checklist for keeping script changes small, verified, and user-readable.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
 - `.github/workflows-disabled/verify.yml`: parked GitHub Actions workflow, kept for later reactivation but not run by GitHub.
 - `.github/dependabot-disabled.yml`: parked Dependabot config for GitHub Actions updates.
 - `.github/ISSUE_TEMPLATE/config.yml`: disables blank GitHub issues and points readers back to the as-is support policy.
-- `.github/pull_request_template.md`: contribution checklist for narrow, verified script changes.
 - `AGENTS.md`: rules for future automated work in this repository.
-- `LICENSE`: MIT license and no-warranty notice.
+- `LICENSE`: source-available showcase license, no-AI-training restriction, and no-warranty notice.
 - `SUPPORT.md`: support policy and as-is notice.
 - `SECURITY.md`: security policy and supported-version notice.
 

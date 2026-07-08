@@ -1,21 +1,28 @@
-MIT License
+Source-Available Showcase License
 
-Copyright (c) 2026 NeatWolf
+Copyright (c) 2026 NeatWolf for modifications and repository additions.
+Upstream portions remain copyrighted by their respective author(s). This
+license applies only to rights the stated copyright holder(s) can grant. No
+permission is granted beyond the permissions stated here.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This repository is published for showcase, review, and personal evaluation.
+Permission is granted to view the source and download unmodified copies for
+personal local testing only.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+No other permission is granted. Without prior written permission from the
+copyright holder(s), you may not:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+- copy, publish, mirror, redistribute, sublicense, or sell this repository or
+  any substantial part of it;
+- modify, adapt, translate, merge, repackage, or publish derivative versions;
+- publish forks, modified copies, or redistributed copies, except where
+  GitHub's own terms require limited platform operation;
+- use this repository, its contents, or derived data for machine-learning or
+  artificial-intelligence training, fine-tuning, dataset creation, evaluation,
+  benchmarking, embedding, or model improvement.
+
+This project is provided as-is, without warranty of any kind, express or
+implied, including but not limited to warranties of merchantability, fitness for
+a particular purpose, and noninfringement. The author(s) and copyright holder(s)
+are not liable for any claim, damage, data loss, browser damage, system damage,
+or other liability arising from the repository or its use.

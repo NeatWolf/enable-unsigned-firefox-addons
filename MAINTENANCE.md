@@ -2,6 +2,11 @@
 
 This repository is maintained as-is.
 
+This is source-available showcase software, not an open-source project. Do not
+add community contribution scaffolding such as a code of conduct, contribution
+guide, pull request template, issue forms, or support channels unless the owner
+explicitly changes that policy. Keep the no-AI-training license boundary intact.
+
 Useful checks before changing scripts:
 
 - Run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1`.
