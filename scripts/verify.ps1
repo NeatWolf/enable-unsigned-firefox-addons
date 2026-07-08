@@ -16,8 +16,8 @@ $RequiredFiles = @(
     'unpatch-firefox.sh',
     'clear-startup-cache.sh',
     'scripts\verify-fixture.sh',
-    '.github\workflows\verify.yml',
-    '.github\dependabot.yml',
+    '.github\workflows-disabled\verify.yml',
+    '.github\dependabot-disabled.yml',
     '.github\ISSUE_TEMPLATE\config.yml',
     '.github\pull_request_template.md',
     'AGENTS.md',
@@ -193,17 +193,17 @@ foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'application:
     }
 }
 
-$WorkflowScript = Get-Content -LiteralPath (Join-Path $RepoRoot '.github\workflows\verify.yml') -Raw
+$WorkflowScript = Get-Content -LiteralPath (Join-Path $RepoRoot '.github\workflows-disabled\verify.yml') -Raw
 foreach ($Pattern in @('actions/checkout@v4', 'bash -n patch-firefox.sh', 'bash -n clear-startup-cache.sh', 'bash scripts/verify-fixture.sh', 'windows-latest', 'powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1')) {
     if (-not $WorkflowScript.Contains($Pattern)) {
-        throw ".github\workflows\verify.yml is missing expected CI step: $Pattern"
+        throw ".github\workflows-disabled\verify.yml is missing expected parked CI step: $Pattern"
     }
 }
 
-$DependabotConfig = Get-Content -LiteralPath (Join-Path $RepoRoot '.github\dependabot.yml') -Raw
+$DependabotConfig = Get-Content -LiteralPath (Join-Path $RepoRoot '.github\dependabot-disabled.yml') -Raw
 foreach ($Pattern in @('package-ecosystem: "github-actions"', 'interval: "monthly"')) {
     if (-not $DependabotConfig.Contains($Pattern)) {
-        throw ".github\dependabot.yml is missing expected upkeep setting: $Pattern"
+        throw ".github\dependabot-disabled.yml is missing expected parked upkeep setting: $Pattern"
     }
 }
 
@@ -229,14 +229,14 @@ foreach ($Pattern in @('provided as-is', 'no support commitment', 'no help desk'
 }
 
 $Changelog = Get-Content -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md') -Raw
-foreach ($Pattern in @('Changelog', 'Unreleased', 'MIT license', 'as-is/no-support', 'corrupt archives', 'Windows CI', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'matching dry-run command', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
+foreach ($Pattern in @('Changelog', 'Unreleased', 'Parked GitHub Actions', 'MIT license', 'as-is/no-support', 'corrupt archives', 'Windows CI', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'matching dry-run command', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
     if (-not $Changelog.Contains($Pattern)) {
         throw "CHANGELOG.md is missing expected summary text: $Pattern"
     }
 }
 
 $MaintenanceNotes = Get-Content -LiteralPath (Join-Path $RepoRoot 'MAINTENANCE.md') -Raw
-foreach ($Pattern in @('maintained as-is', 'verify.ps1', 'Python optional', 'PowerShell/.NET fallback', 'CHANGELOG.md', 'disable Issues and Discussions', 'GitHub repository settings')) {
+foreach ($Pattern in @('maintained as-is', 'verify.ps1', 'Python optional', 'PowerShell/.NET fallback', 'CHANGELOG.md', 'disable Issues and Discussions', 'GitHub repository settings', 'GitHub Actions is currently parked', 'Dependabot for GitHub Actions is currently parked')) {
     if (-not $MaintenanceNotes.Contains($Pattern)) {
         throw "MAINTENANCE.md is missing expected maintenance note: $Pattern"
     }
@@ -257,7 +257,7 @@ foreach ($Pattern in @('No supported versions', 'provided as-is', 'Report Firefo
 }
 
 $Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
-foreach ($Pattern in @('This modifies a local Firefox install', 'no compatibility guarantee', 'Keep your own backup or be ready to reinstall Firefox', 'LICENSE', 'SUPPORT.md', 'patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'matching `--dry-run` command', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'CHANGELOG.md', 'CODE_OF_CONDUCT.md', 'MAINTENANCE.md', 'pull_request_template.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
+foreach ($Pattern in @('This modifies a local Firefox install', 'no compatibility guarantee', 'Keep your own backup or be ready to reinstall Firefox', 'LICENSE', 'SUPPORT.md', 'patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'matching `--dry-run` command', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'workflows-disabled', 'dependabot-disabled', 'CHANGELOG.md', 'CODE_OF_CONDUCT.md', 'MAINTENANCE.md', 'pull_request_template.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
     if (-not $Readme.Contains($Pattern)) {
         throw "README.md is missing expected Windows launcher guidance: $Pattern"
     }

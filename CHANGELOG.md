@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Parked GitHub Actions and the related Dependabot config while hosted Actions are unavailable.
 - Refined README heading hierarchy and presentation wording.
 - Polished README first-screen layout and added a GitHub social preview asset.
 - Added MIT license and stronger as-is/no-support repo boundary.

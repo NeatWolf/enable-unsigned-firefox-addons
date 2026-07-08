@@ -11,6 +11,8 @@ Useful checks before changing scripts:
 - Keep script output direct enough for inexperienced users and clear enough for technical users.
 - Update `CHANGELOG.md` when behavior visible to users changes.
 - If the owner wants no support channel, disable Issues and Discussions in GitHub repository settings. Files in this repo can only set boundaries, not turn those features off.
+- GitHub Actions is currently parked at `.github/workflows-disabled/verify.yml`; move it back to `.github/workflows/verify.yml` only when hosted Actions can run again.
+- Dependabot for GitHub Actions is currently parked at `.github/dependabot-disabled.yml` for the same reason.
 
 ## GitHub Presentation
 

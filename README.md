@@ -1,7 +1,5 @@
 # enable unsigned Firefox addons
 
-[![Verify](https://github.com/NeatWolf/enable-unsigned-firefox-addons/actions/workflows/verify.yml/badge.svg)](https://github.com/NeatWolf/enable-unsigned-firefox-addons/actions/workflows/verify.yml)
-
 Patch a local Firefox Release install so unsigned addons can be loaded without switching to Developer Edition.
 
 > Warning: This modifies a local Firefox install. Future Firefox releases can break it.
@@ -77,6 +75,8 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `MAINTENANCE.md`: short checklist for keeping script changes small, verified, and user-readable.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
+- `.github/workflows-disabled/verify.yml`: parked GitHub Actions workflow, kept for later reactivation but not run by GitHub.
+- `.github/dependabot-disabled.yml`: parked Dependabot config for GitHub Actions updates.
 - `.github/ISSUE_TEMPLATE/config.yml`: disables blank GitHub issues and points readers back to the as-is support policy.
 - `.github/pull_request_template.md`: contribution checklist for narrow, verified script changes.
 - `AGENTS.md`: rules for future automated work in this repository.
