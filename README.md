@@ -41,10 +41,10 @@ On Windows:
 1. Double-click `START-WINDOWS.cmd`.
 1. Choose `1` to check Firefox patch status.
 1. Choose `2` to pick a Firefox profile and test the setup without changing files.
-1. Choose `3` to patch Firefox. The menu asks again which Firefox profile should allow unsigned add-ons.
+1. Choose `3` to apply the full setup. The menu asks again which Firefox profile should allow unsigned add-ons.
 1. Use `A`, `B`, and `C` later when you want to restore Firefox before updating it.
 
-The menu opens in the correct folder automatically. Real patch, restore, preference, and cache-cleanup actions ask before changing files. Option 2 does not change Firefox and does not need administrator permission. Option 3 may still ask Windows for administrator approval when Firefox is installed under `C:\Program Files\Mozilla Firefox`; that approval is what allows the script to replace Firefox program files.
+The menu opens in the correct folder automatically. Real patch, restore, preference, and cache-cleanup actions ask before changing files. Option 2 does not change Firefox and does not need administrator permission. If option 2 succeeds, return to the menu and choose option 3 for the real setup. When option 3 asks for a profile, choose the same profile unless you intentionally want a different Firefox profile. Option 3 applies the full setup: patch Firefox, set that profile's add-on setting, and clear startup cache. There is no extra phase after it finishes. Option 3 may still ask Windows for administrator approval when Firefox is installed under `C:\Program Files\Mozilla Firefox`; that approval is what allows the script to replace Firefox program files.
 
 ## What gets changed
 

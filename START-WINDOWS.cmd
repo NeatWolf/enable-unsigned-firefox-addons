@@ -9,7 +9,7 @@ echo Enable Unsigned Firefox Add-ons
 echo.
 echo 1  Check Firefox patch status
 echo 2  Test setup with dry run
-echo 3  Patch Firefox and choose profile
+echo 3  Apply full setup (patch, profile, cache)
 echo.
 echo 4  Show Firefox profiles and add-on setting
 echo 5  Test default profile add-on setting
@@ -57,15 +57,26 @@ if errorlevel 1 call :wait & goto menu
 
 echo.
 echo Checking Firefox patch dry run...
-call "%~dp0patch-firefox.cmd" --dry-run
+call :run_menu_check "%~dp0patch-firefox.cmd" --dry-run
 if errorlevel 1 call :wait & goto menu
 echo.
 echo Checking the add-on setting for the selected Firefox profile...
-call "%~dp0set-unsigned-addon-pref.cmd" --dry-run --profile "%SELECTED_PROFILE%"
+call :run_menu_check "%~dp0set-unsigned-addon-pref.cmd" --dry-run --profile "%SELECTED_PROFILE%"
 if errorlevel 1 call :wait & goto menu
 echo.
 echo Checking startup cache dry run...
-call "%~dp0clear-startup-cache.cmd" --dry-run
+call :run_menu_check "%~dp0clear-startup-cache.cmd" --dry-run
+if errorlevel 1 call :wait & goto menu
+echo.
+echo Dry run checks passed.
+echo Tested profile:
+echo   %SELECTED_PROFILE%
+echo.
+echo Next step: choose option 3 from this menu.
+echo When option 3 asks for a profile, choose the same one unless you
+echo intentionally want to use a different Firefox profile.
+echo Option 3 applies the full setup: patch Firefox, set that profile's
+echo add-on setting, and clear startup cache. There is no extra phase after it.
 call :wait
 goto menu
 
@@ -80,7 +91,7 @@ if errorlevel 1 call :wait & goto menu
 
 echo.
 echo Checking the add-on setting for the selected Firefox profile...
-call "%~dp0set-unsigned-addon-pref.cmd" --dry-run --profile "%SELECTED_PROFILE%"
+call :run_menu_check "%~dp0set-unsigned-addon-pref.cmd" --dry-run --profile "%SELECTED_PROFILE%"
 if errorlevel 1 call :wait & goto menu
 
 set "FIREFOX_PATCH_ASSUME_YES=1"
@@ -161,6 +172,7 @@ goto menu
 echo.
 echo This will patch the Firefox program files, ask which Firefox profile
 echo should allow unsigned add-ons, and clear rebuildable startup cache.
+echo This is the full setup step. There is no extra phase after it finishes.
 echo If Firefox is installed under Program Files, Windows may ask for
 echo administrator approval during the patch step.
 echo.
@@ -222,6 +234,25 @@ if not defined SELECTED_PROFILE (
 )
 
 exit /b 0
+
+:run_menu_check
+set "MENU_OUTPUT="
+for /f "delims=" %%T in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.IO.Path]::GetTempFileName()"') do set "MENU_OUTPUT=%%T"
+if not defined MENU_OUTPUT (
+    echo Couldn't create a temporary command output file.
+    exit /b 1
+)
+
+call %* > "%MENU_OUTPUT%" 2>&1
+set "MENU_EXIT=!ERRORLEVEL!"
+if "!MENU_EXIT!"=="0" (
+    findstr /V /B /C:"next step:" "%MENU_OUTPUT%"
+    if errorlevel 1 rem Output only contained nested next-step lines.
+) else (
+    type "%MENU_OUTPUT%"
+)
+del "%MENU_OUTPUT%" >nul 2>nul
+exit /b !MENU_EXIT!
 
 :wait
 echo.

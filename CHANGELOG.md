@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Made the Windows menu hide nested command-line `next step:` hints during full setup dry-run checks and print one clear menu-level next step instead.
+- Clarified that menu option 3 is the full setup step: patch Firefox, set the selected profile add-on setting, and clear startup cache.
 - Fixed Windows elevation detection so real patch and restore commands request administrator approval before writing inside protected `Program Files` Firefox installs.
 - Clarified that dry run does not prove Windows write access to `Program Files`; the real patch may still need UAC approval.
 - Added a Windows profile picker so users can choose the Firefox profile that should allow unsigned add-ons.
