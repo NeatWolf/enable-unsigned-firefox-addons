@@ -2,28 +2,118 @@
 set -euo pipefail
 
 DRY_RUN=0
+MOZILLA_HOME_ARG=""
 
 usage() {
-    echo "Usage: $0 [--dry-run]"
+    cat <<USAGE
+Usage: $0 [--dry-run] [--mozilla-home PATH]
+
+Options:
+  --dry-run              Build and verify a patched archive without modifying Firefox.
+  --mozilla-home PATH    Firefox install directory containing omni.ja.
+  -h, --help             Show this help.
+
+If --mozilla-home is omitted, MOZILLA_HOME is used. If neither is set, the
+script tries to auto-detect a Firefox install directory that contains omni.ja.
+USAGE
 }
 
-if [[ $# -gt 1 ]]; then
-    usage
-    exit 1
-fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry-run)
+            DRY_RUN=1
+            shift
+            ;;
+        --mozilla-home)
+            if [[ $# -lt 2 || -z $2 ]]; then
+                echo "--mozilla-home requires a path"
+                exit 1
+            fi
+            MOZILLA_HOME_ARG=$2
+            shift 2
+            ;;
+        --mozilla-home=*)
+            MOZILLA_HOME_ARG=${1#*=}
+            if [[ -z $MOZILLA_HOME_ARG ]]; then
+                echo "--mozilla-home requires a path"
+                exit 1
+            fi
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+    esac
+done
 
-if [[ $# -eq 1 ]]; then
-    if [[ $1 != "--dry-run" ]]; then
-        usage
-        exit 1
+candidate_mozilla_homes() {
+    local firefox_bin
+    local firefox_dir
+    local candidate
+
+    if command -v firefox > /dev/null 2>&1; then
+        firefox_bin=$(command -v firefox)
+        firefox_dir=$(cd -- "${firefox_bin%/*}" 2> /dev/null && pwd -P || true)
+        if [[ -n $firefox_dir ]]; then
+            printf '%s\n' "$firefox_dir"
+        fi
     fi
-    DRY_RUN=1
-fi
 
-if [[ -z ${MOZILLA_HOME:-} ]]; then
-    echo "Set MOZILLA_HOME first"
-    exit 1
-fi
+    for candidate in \
+        "/c/Program Files/Mozilla Firefox" \
+        "/c/Program Files (x86)/Mozilla Firefox" \
+        "/mnt/c/Program Files/Mozilla Firefox" \
+        "/Applications/Firefox.app/Contents/Resources"; do
+        printf '%s\n' "$candidate"
+    done
+}
+
+resolve_mozilla_home() {
+    local candidate
+    local seen="|"
+    local matches=()
+
+    if [[ -n $MOZILLA_HOME_ARG ]]; then
+        MOZILLA_HOME=$MOZILLA_HOME_ARG
+        return
+    fi
+
+    if [[ -n ${MOZILLA_HOME:-} ]]; then
+        return
+    fi
+
+    while IFS= read -r candidate; do
+        if [[ -f "$candidate/omni.ja" && $seen != *"|$candidate|"* ]]; then
+            matches+=("$candidate")
+            seen="${seen}${candidate}|"
+        fi
+    done < <(candidate_mozilla_homes)
+
+    case ${#matches[@]} in
+        1)
+            MOZILLA_HOME=${matches[0]}
+            echo "Detected MOZILLA_HOME=$MOZILLA_HOME"
+            ;;
+        0)
+            echo "Set MOZILLA_HOME or pass --mozilla-home /path/to/firefox"
+            exit 1
+            ;;
+        *)
+            echo "Found multiple Firefox installs. Pass --mozilla-home explicitly:"
+            for candidate in "${matches[@]}"; do
+                echo "  $candidate"
+            done
+            exit 1
+            ;;
+    esac
+}
+
+resolve_mozilla_home
 
 for tool in cp grep mktemp mv rm sed tr unzip; do
     if ! command -v "$tool" > /dev/null 2>&1; then

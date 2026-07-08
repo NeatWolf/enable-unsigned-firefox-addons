@@ -29,6 +29,9 @@ $PatchRequiredPatterns = @(
     '#!/usr/bin/env bash',
     'set -euo pipefail',
     '--dry-run',
+    '--mozilla-home',
+    'resolve_mozilla_home',
+    'Detected MOZILLA_HOME=',
     'MOZILLA_HOME',
     'omni.ja',
     'omni-orig.ja',
@@ -54,14 +57,14 @@ foreach ($Pattern in $PatchRequiredPatterns) {
     }
 }
 
-foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', 'MOZILLA_HOME', 'omni.ja', 'omni-orig.ja', 'RESTORE_FILE', 'assert_firefox_not_running', 'SKIP_FIREFOX_PROCESS_CHECK', 'mv "$RESTORE_FILE" "$OMNI_FILE"', 'rm "$ORIGINAL_OMNI_FILE"')) {
+foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--mozilla-home', 'resolve_mozilla_home', 'Detected MOZILLA_HOME=', 'MOZILLA_HOME', 'omni.ja', 'omni-orig.ja', 'RESTORE_FILE', 'assert_firefox_not_running', 'SKIP_FIREFOX_PROCESS_CHECK', 'mv "$RESTORE_FILE" "$OMNI_FILE"', 'rm "$ORIGINAL_OMNI_FILE"')) {
     if (-not $UnpatchScript.Contains($Pattern)) {
         throw "unpatch-firefox.sh is missing expected rollback operation: $Pattern"
     }
 }
 
 $FixtureScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\verify-fixture.sh') -Raw
-foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'modern-dry-run-readonly-home', 'already-false', 'missing-appconstants', 'running-firefox-guard', '--dry-run')) {
+foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'modern-dry-run-readonly-home', 'mozilla-home-argument', 'already-false', 'missing-appconstants', 'running-firefox-guard', '--dry-run')) {
     if (-not $FixtureScript.Contains($Pattern)) {
         throw "scripts\verify-fixture.sh is missing expected test coverage: $Pattern"
     }

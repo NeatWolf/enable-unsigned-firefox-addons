@@ -44,17 +44,37 @@ bash -n patch-firefox.sh
 bash -n unpatch-firefox.sh
 ```
 
+# Quick start
+
+If Firefox is in a common install location, start with:
+
+```bash
+./patch-firefox.sh --dry-run
+```
+
+If the script cannot auto-detect the install directory, pass it explicitly:
+
+```bash
+./patch-firefox.sh --dry-run --mozilla-home "/path/to/firefox"
+./patch-firefox.sh --mozilla-home "/path/to/firefox"
+```
+
+On Windows with Git Bash, the default Firefox install is usually:
+
+```bash
+./patch-firefox.sh --dry-run --mozilla-home "/c/Program Files/Mozilla Firefox"
+```
+
 # Patching
 
 Follow the following steps to patch Firefox to disable addon signing.
 
 1. Update Firefox to the latest version before starting, to save extra steps to update later.
 1. Configure Firefox not to auto-update using `about:preferences#general`, because you will now have additional manual steps to update (see the Updating section).
-1. Find the directory where you have installed Firefox. This is the path where the `firefox` binary resides (excluding the name of the binary - so it is the path to the directory and not the binary).
-1. Run `export MOZILLA_HOME=/path/to/firefox`, substituting the directory in place of `/path/to/firefox`.
+1. Find the directory where you have installed Firefox. This is the path where `omni.ja` resides. On many installs it is also the directory containing the `firefox` binary.
 1. Ensure that you have exited from Firefox. The scripts refuse to modify `omni.ja` if Firefox appears to be running from `MOZILLA_HOME`.
-1. Run `patch-firefox.sh --dry-run` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox. Dry run does not write to `MOZILLA_HOME`, so it should work even before you have admin/write access for the real patch.
-1. Run the `patch-firefox.sh` script. If it works, the last line should be Done.
+1. Run `patch-firefox.sh --dry-run --mozilla-home /path/to/firefox` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox. Dry run does not write to `MOZILLA_HOME`, so it should work even before you have admin/write access for the real patch.
+1. Run `patch-firefox.sh --mozilla-home /path/to/firefox`. If it works, the last line should be Done.
 1. If you have an existing Firefox profile, you will also need to find your profile directory. The location depends on your configuration, but on Linux is usually a subdirectory of `~/.mozilla/firefox/`, called `xxxxxxxx.default`, where xxxxxxxx is replaced with a random string of characters.
 1. In that profile directory (if you have one already), you will need to delete the subdirectory called `startupCache`.
 1. Start Firefox.
@@ -69,9 +89,8 @@ Follow the following steps to patch Firefox to disable addon signing.
 You should continue to upgrade Firefox whenever it prompts you to upgrade it to ensure you have the latest security patches. However, before applying upgrades, you should:
 
 1. Exit from Firefox.
-1. Ensure you have exported `MOZILLA_HOME` (per the steps for patching)
-1. Run `unpatch-firefox.sh --dry-run` to confirm that the backup can be staged for restore.
-1. Run `unpatch-firefox.sh`
+1. Run `unpatch-firefox.sh --dry-run --mozilla-home /path/to/firefox` to confirm that the backup can be staged for restore.
+1. Run `unpatch-firefox.sh --mozilla-home /path/to/firefox`
 1. Start Firefox using the `-ProfileManager` option, and start it using a different profile - create a new one if necessary (don't start it with your normal profile as this will disable all your unsigned addons, and you will need to clear caches again).
 1. Apply the update.
 1. Run `patch-firefox.sh`

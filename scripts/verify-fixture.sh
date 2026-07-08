@@ -225,6 +225,18 @@ run_patch_dry_run_readonly_home_fixture() {
     assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
 }
 
+run_mozilla_home_argument_fixture() {
+    local name="mozilla-home-argument"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+
+    create_fixture "$name" "modern" "$app_constants_relpath"
+
+    env -u MOZILLA_HOME "$REPO_ROOT/patch-firefox.sh" --dry-run --mozilla-home "$fixture_home" > /dev/null
+    assert_no_patch_side_effects "$name" "$fixture_home"
+    assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
+}
+
 run_patch_failure_fixture() {
     local name=$1
     local format=$2
@@ -268,6 +280,7 @@ run_roundtrip_fixture "modern-sysm" "modern" "modules/AppConstants.sys.mjs"
 run_roundtrip_fixture "legacy-jsm" "legacy" "modules/AppConstants.jsm"
 run_patch_dry_run_fixture
 run_patch_dry_run_readonly_home_fixture
+run_mozilla_home_argument_fixture
 run_patch_failure_fixture "already-false" "modern-false" "modules/AppConstants.sys.mjs"
 run_patch_failure_fixture "missing-appconstants" "missing" "modules/AppConstants.sys.mjs"
 run_process_guard_fixture
