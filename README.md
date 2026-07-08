@@ -23,13 +23,13 @@ Download the latest release ZIP. Do not download files one by one, and do not us
 1. On Windows, open the extracted folder and double-click `START-WINDOWS.cmd`.
 1. On Git Bash, macOS, or Linux, use the commands in the Advanced command-line use section below.
 
-Do not copy individual files around. Do not put the scripts inside the Firefox install folder.
+Keep the extracted folder together, including its `scripts` folder. Do not copy individual files around. Do not put the scripts inside the Firefox install folder.
 
 The release ZIP contains only the files normal users need:
 
 | System | Run these files |
 | --- | --- |
-| Windows | `START-WINDOWS.cmd` |
+| Windows | `START-WINDOWS.cmd` from the extracted folder |
 | Git Bash, macOS, Linux | `patch-firefox.sh`, `unpatch-firefox.sh`, `clear-startup-cache.sh` |
 
 The source repository contains extra documentation, local verification, and repository metadata. Normal users do not need those files.
@@ -47,6 +47,8 @@ On Windows:
 The menu opens in the correct folder automatically. Real patch, restore, preference, and cache-cleanup actions ask before changing files. Option 2 does not change Firefox and does not need administrator permission. If option 2 succeeds, return to the menu and choose option 3 for the real setup. When option 3 asks for a profile, choose the same profile unless you intentionally want a different Firefox profile. Option 3 applies the full setup: patch Firefox, set that profile's add-on setting, and clear startup cache. There is no extra phase after it finishes. Option 3 verifies that Firefox was patched before it changes the profile setting or clears cache. Option 3 may still ask Windows for administrator approval when Firefox is installed under `C:\Program Files\Mozilla Firefox`; that approval is what allows the script to replace Firefox program files.
 
 Windows needs Git Bash from Git for Windows to run these scripts. If Git for Windows is missing, the launcher stops and tells you before changing anything. The Windows administrator prompt may mention Windows PowerShell. Git Bash is only the local script runner used by this project; the tool is not doing a Git download, update, sign-in, or internet action.
+
+The Windows menu uses single-key prompts. You do not need to press Enter for menu choices, and unexpected keys are ignored instead of being treated as commands.
 
 ## What gets changed
 
@@ -132,7 +134,10 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `clear-startup-cache.sh`: inspects or clears Firefox profile `startupCache` directories listed in `profiles.ini`, with status and dry-run support.
 - `set-unsigned-addon-pref.sh`: inspects or sets the add-on setting in Firefox profile `prefs.js`, with status and dry-run support.
 - `CHANGELOG.md`: high-level summary of user-visible script and repository changes.
+- `findings.md`: short notes about verified local behavior that affected the user-facing scripts.
 - `MAINTENANCE.md`: short checklist for keeping script changes small, verified, and user-readable.
+- `scripts/read-choice.ps1`: quiet single-key input helper used by the Windows launchers.
+- `scripts/debug-choice-beep.cmd`: debug-only repro helper for the Windows `choice.exe` system-beep behavior.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
 - `.github/workflows-disabled/verify.yml`: parked GitHub Actions workflow, kept for later reactivation but not run by GitHub.

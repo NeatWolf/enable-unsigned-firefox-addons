@@ -27,8 +27,9 @@ echo.
 echo H  Open README
 echo Q  Quit
 echo.
-choice /C 123456789ABCPHQ /N /M "Choose an option: "
+call :read_choice "123456789ABCPHQ" "Choose an option: "
 
+if errorlevel 255 goto quit
 if errorlevel 15 goto quit
 if errorlevel 14 goto readme
 if errorlevel 13 goto pref_pick
@@ -193,12 +194,17 @@ echo Startup cache cleanup does not delete bookmarks, passwords, history,
 echo form data, settings, cookies, or add-ons.
 echo Firefox must be closed. Run option 2 first to test without changing files.
 echo.
-choice /C YN /N /M "Continue? [Y/N] "
+call :read_choice "YN" "Continue? [Y/N] "
+if errorlevel 255 (
+    echo Cancelled. No files were changed.
+    exit /b 2
+)
 if errorlevel 2 (
     echo Cancelled. No files were changed.
     exit /b 2
 )
-exit /b 0
+if errorlevel 1 exit /b 0
+exit /b 1
 
 :select_profile
 set "PROFILE_LIST="
@@ -225,8 +231,13 @@ for /f "usebackq tokens=1,2,3 delims=|" %%A in ("%PROFILE_LIST%") do (
     )
 )
 echo.
-choice /C 123456789Q /N /M "Choose profile number, or Q to cancel: "
+call :read_choice "123456789Q" "Choose profile number, or Q to cancel: "
 set "PROFILE_CHOICE=%ERRORLEVEL%"
+if "%PROFILE_CHOICE%"=="255" (
+    del "%PROFILE_LIST%" >nul 2>nul
+    echo Cancelled. No add-on setting was changed.
+    exit /b 2
+)
 if "%PROFILE_CHOICE%"=="10" (
     del "%PROFILE_LIST%" >nul 2>nul
     echo Cancelled. No add-on setting was changed.
@@ -236,14 +247,23 @@ if "%PROFILE_CHOICE%"=="10" (
 for /f "usebackq tokens=1,2,3 delims=|" %%A in ("%PROFILE_LIST%") do (
     if "%%A"=="!PROFILE_CHOICE!" set "SELECTED_PROFILE=%%B"
 )
-del "%PROFILE_LIST%" >nul 2>nul
 
 if not defined SELECTED_PROFILE (
     echo Invalid profile selection. No add-on setting was changed.
+    del "%PROFILE_LIST%" >nul 2>nul
     exit /b 1
 )
 
+del "%PROFILE_LIST%" >nul 2>nul
 exit /b 0
+
+:read_choice
+if not exist "%~dp0scripts\read-choice.ps1" (
+    echo Couldn't find input helper: %~dp0scripts\read-choice.ps1
+    exit /b 255
+)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\read-choice.ps1" -Choices "%~1" -Prompt "%~2"
+exit /b %ERRORLEVEL%
 
 :assert_patch_applied
 set "PATCH_STATUS_OUTPUT="

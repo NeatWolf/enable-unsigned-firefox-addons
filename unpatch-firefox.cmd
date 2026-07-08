@@ -61,12 +61,25 @@ echo.
 echo Safer first:
 echo   "%~nx0" --dry-run %*
 echo.
-choice /C YN /N /M "Continue? [Y/N] "
+call :read_choice "YN" "Continue? [Y/N] "
+if errorlevel 255 (
+    echo Cancelled. No files were changed.
+    exit /b 2
+)
 if errorlevel 2 (
     echo Cancelled. No files were changed.
     exit /b 2
 )
-exit /b 0
+if errorlevel 1 exit /b 0
+exit /b 1
+
+:read_choice
+if not exist "%~dp0scripts\read-choice.ps1" (
+    echo Couldn't find input helper: %~dp0scripts\read-choice.ps1
+    exit /b 255
+)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\read-choice.ps1" -Choices "%~1" -Prompt "%~2"
+exit /b %ERRORLEVEL%
 
 :pause_on_error
 rem A double-clicked .cmd starts with no arguments and closes on failure.
