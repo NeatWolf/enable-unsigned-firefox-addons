@@ -7,6 +7,7 @@ if defined FIREFOX_PATCH_NO_PAUSE set "PAUSE_ON_ERROR=0"
 
 set "CONFIRM_MODIFY=1"
 call :classify_args %*
+if defined FIREFOX_PATCH_ASSUME_YES set "CONFIRM_MODIFY=0"
 
 set "SCRIPT=%~dpn0.sh"
 if not exist "%SCRIPT%" (

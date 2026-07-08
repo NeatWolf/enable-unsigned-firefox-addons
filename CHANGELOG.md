@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added a Windows profile picker so users can choose the Firefox profile that should allow unsigned add-ons.
+- Added clearer wording that startup cache is rebuildable Firefox startup data and does not include bookmarks, passwords, history, form data, settings, cookies, add-ons, or profiles.
 - Handled Firefox omni.ja archives that Info-ZIP reports as prefixed while still rejecting unexpected extraction warnings.
 - Added a double-click Windows start menu for status, dry-run, patch, startup-cache cleanup, and restore actions.
 - Switched normal-user download guidance from source ZIPs to release ZIPs.

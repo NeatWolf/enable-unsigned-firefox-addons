@@ -7,6 +7,7 @@ if defined FIREFOX_PATCH_NO_PAUSE set "PAUSE_ON_ERROR=0"
 
 set "CONFIRM_MODIFY=1"
 call :classify_args %*
+if defined FIREFOX_PATCH_ASSUME_YES set "CONFIRM_MODIFY=0"
 
 set "SCRIPT=%~dpn0.sh"
 if not exist "%SCRIPT%" (
@@ -50,6 +51,8 @@ rem Windows users often arrive here by double-clicking the launcher.
 rem Ask before removing startupCache folders from Firefox profiles.
 echo.
 echo This will delete Firefox profile startupCache folders found by the script.
+echo Startup cache is rebuildable Firefox startup data.
+echo It is not bookmarks, passwords, history, form data, settings, cookies, or add-ons.
 echo Firefox must be closed before clearing startupCache.
 echo Run --dry-run first to see exactly what would be removed.
 echo.

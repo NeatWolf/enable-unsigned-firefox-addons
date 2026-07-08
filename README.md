@@ -40,12 +40,19 @@ On Windows:
 
 1. Double-click `START-WINDOWS.cmd`.
 1. Choose `1` to check Firefox patch status.
-1. Choose `2` to test the patch with a dry run.
-1. Choose `3` to patch Firefox only after the dry run succeeds.
-1. Choose `4`, then `5`, then `6` to check, preview, and clear Firefox startup cache.
-1. Use `7`, `8`, and `9` later when you want to restore Firefox before updating it.
+1. Choose `2` to pick a Firefox profile and test the setup without changing files.
+1. Choose `3` to patch Firefox. The menu asks again which Firefox profile should allow unsigned add-ons.
+1. Use `A`, `B`, and `C` later when you want to restore Firefox before updating it.
 
-The menu opens in the correct folder automatically. Real patch, restore, and cache-cleanup actions ask before changing files. If Windows needs administrator permission for a protected Firefox install, the launcher requests it when the real action starts.
+The menu opens in the correct folder automatically. Real patch, restore, preference, and cache-cleanup actions ask before changing files. If Windows needs administrator permission for a protected Firefox install, the launcher requests it when the real action starts.
+
+## What gets changed
+
+- Firefox program files: the patch changes Firefox `omni.ja` and keeps `omni-orig.ja` as the rollback backup.
+- Firefox profile: a profile is Firefox's user-data folder for one setup. It stores settings, add-ons, history, bookmarks, passwords, and other user data. Setup changes one setting in the profile you choose: `xpinstall.signatures.required=false`.
+- Startup cache: cleanup removes Firefox `startupCache` folders. These are rebuildable startup files. This does not delete bookmarks, passwords, history, form data, settings, cookies, add-ons, or profiles.
+
+If you use one normal Firefox setup, choose the profile marked default. If you use Firefox Profile Manager or separate profiles, choose the profile where you will install the unsigned add-on. The tool does not change every profile unless you explicitly use `--all-profiles`.
 
 ## Advanced command-line use
 
@@ -57,6 +64,9 @@ From Windows, run these from the extracted folder:
 .\patch-firefox.cmd --status
 .\patch-firefox.cmd --dry-run
 .\patch-firefox.cmd
+.\set-unsigned-addon-pref.cmd --status
+.\set-unsigned-addon-pref.cmd --dry-run
+.\set-unsigned-addon-pref.cmd
 .\clear-startup-cache.cmd --status
 .\clear-startup-cache.cmd --dry-run
 .\clear-startup-cache.cmd
@@ -68,6 +78,9 @@ From Git Bash, macOS, or Linux, run these from the extracted folder:
 bash ./patch-firefox.sh --status
 bash ./patch-firefox.sh --dry-run
 bash ./patch-firefox.sh
+bash ./set-unsigned-addon-pref.sh --status
+bash ./set-unsigned-addon-pref.sh --dry-run
+bash ./set-unsigned-addon-pref.sh
 bash ./clear-startup-cache.sh --status
 bash ./clear-startup-cache.sh --dry-run
 bash ./clear-startup-cache.sh
@@ -85,7 +98,9 @@ If auto-detection does not find Firefox, pass the install directory explicitly:
 
 Bash accepts the same `--mozilla-home /path/to/firefox` option.
 
-For patch and restore commands, pass the Firefox install folder that contains `omni.ja`. For startup-cache cleanup, pass a Firefox profile directory or a `profiles.ini` file when auto-detection is not enough. Windows paths such as `C:\Program Files\Mozilla Firefox` are accepted and normalized when needed.
+For patch and restore commands, pass the Firefox install folder that contains `omni.ja`. For the add-on setting and startup-cache cleanup, pass a Firefox profile directory or a `profiles.ini` file when auto-detection is not enough. Windows paths such as `C:\Program Files\Mozilla Firefox` are accepted and normalized when needed.
+
+The add-on setting helper changes the default Firefox profile by default. Use `--profile "C:\Users\Name\AppData\Roaming\Mozilla\Firefox\Profiles\xxxxxxxx.default-release"` for one specific profile, or `--all-profiles` only when you intentionally want every detected profile changed.
 
 Git for Windows includes Git Bash. The `.cmd` launchers use Git Bash and intentionally skip WSL bash.
 
@@ -108,10 +123,12 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `patch-firefox.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `patch-firefox.sh`.
 - `unpatch-firefox.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `unpatch-firefox.sh`.
 - `clear-startup-cache.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `clear-startup-cache.sh`.
+- `set-unsigned-addon-pref.cmd`: Windows launcher that finds Git Bash, asks before editing the profile add-on setting, and runs `set-unsigned-addon-pref.sh`.
 - `START-WINDOWS.cmd`: double-click Windows menu for status, dry-run, patch, startup-cache cleanup, restore, and README access.
 - `patch-firefox.sh`: inspects status, dry-runs safely, edits Firefox `AppConstants`, verifies the replacement archive, then backs up `omni.ja` to `omni-orig.ja` and swaps in the patched archive.
 - `unpatch-firefox.sh`: inspects status, dry-runs safely, restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
 - `clear-startup-cache.sh`: inspects or clears Firefox profile `startupCache` directories listed in `profiles.ini`, with status and dry-run support.
+- `set-unsigned-addon-pref.sh`: inspects or sets the add-on setting in Firefox profile `prefs.js`, with status and dry-run support.
 - `CHANGELOG.md`: high-level summary of user-visible script and repository changes.
 - `MAINTENANCE.md`: short checklist for keeping script changes small, verified, and user-readable.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
@@ -150,13 +167,16 @@ Follow the following steps to patch Firefox to disable addon signing.
 1. Run `patch-firefox.cmd --status --mozilla-home /path/to/firefox` on Windows, or `patch-firefox.sh --status --mozilla-home /path/to/firefox` from Bash, to inspect the Firefox application version and build ID, archive, current signing constant, rollback backup, archive repacker, Firefox process state, and suggested next step without modifying anything.
 1. Run the same command with `--dry-run` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox. Dry run does not write to `MOZILLA_HOME`, so it should work even before you have admin/write access for the real patch. If it succeeds, it tells you to run the same command without `--dry-run`.
 1. Run the patch command without `--status` or `--dry-run`. On Windows, the launcher asks for confirmation first, then requests UAC elevation automatically if the Firefox directory is protected. If it works, the last line should be Done.
+1. Run `set-unsigned-addon-pref.cmd --status` on Windows, or `set-unsigned-addon-pref.sh --status` from Bash, to see detected Firefox profiles and whether each one already allows unsigned add-ons.
+1. Run `set-unsigned-addon-pref.cmd --dry-run` on Windows, or `set-unsigned-addon-pref.sh --dry-run` from Bash, to preview the default profile's add-on setting change. If you use another profile, pass that profile with `--profile /path/to/profile`.
+1. Run `set-unsigned-addon-pref.cmd` on Windows, or `set-unsigned-addon-pref.sh` from Bash, to set the add-on setting in the default profile. The helper stops if Firefox is still running.
 1. Run `clear-startup-cache.cmd --status` on Windows, or `clear-startup-cache.sh --status` from Bash, to see which Firefox profiles the helper detects and whether any startupCache folders are present.
 1. Run `clear-startup-cache.cmd --dry-run` on Windows, or `clear-startup-cache.sh --dry-run` from Bash, to preview Firefox profile `startupCache` directories that will be cleared. If Firefox is still running, dry run warns but does not change anything; the real cleanup still stops until Firefox is closed. If it succeeds, it tells you to run the same command without `--dry-run`.
-1. Run `clear-startup-cache.cmd` on Windows, or `clear-startup-cache.sh` from Bash, to remove those `startupCache` directories. On Windows, the launcher asks for confirmation before deleting cache folders. The helper stops if Firefox is still running. It uses Firefox `profiles.ini`; for an unusual profile location, pass `--profile /path/to/profile`. Windows paths such as `C:\Users\Name\AppData\Roaming\Mozilla\Firefox\Profiles\xxxxxxxx.default-release` are accepted by the `.cmd` launcher.
+1. Run `clear-startup-cache.cmd` on Windows, or `clear-startup-cache.sh` from Bash, to remove those `startupCache` directories. On Windows, the launcher asks for confirmation before deleting cache folders. Startup cache is rebuildable startup data, not bookmarks, passwords, history, form data, settings, cookies, add-ons, or profiles. The helper uses Firefox `profiles.ini`; for an unusual profile location, pass `--profile /path/to/profile`. Windows paths such as `C:\Users\Name\AppData\Roaming\Mozilla\Firefox\Profiles\xxxxxxxx.default-release` are accepted by the `.cmd` launcher.
 1. Start Firefox.
 1. Navigate to `about:config`.
 1. While on `about:config`, go to the Developer tools (F12 by default), and switch to the Console tab. Type in `ChromeUtils.importESModule("resource://gre/modules/AppConstants.sys.mjs").AppConstants.MOZ_REQUIRE_SIGNING`. If you see `false`, the patching has worked. If you see true, something has not worked. Older Firefox builds may require `ChromeUtils.import("resource://gre/modules/AppConstants.jsm").AppConstants.MOZ_REQUIRE_SIGNING` instead. If it did not work, ensure you have run the `patch-firefox.sh` script with the correct MOZILLA_HOME, and that you have successfully deleted the startupCache before starting Firefox, and try again.
-1. In `about:config`, search for xpinstall.signatures.required, and change the value to false if it is true.
+1. If you did not use `set-unsigned-addon-pref`, search for `xpinstall.signatures.required` in `about:config`, and change the value to false if it is true.
 1. Copy your extension into the extensions subdirectory of your Firefox profile directory.
 1. Restart Firefox. Firefox will prompt to confirm that you want to enable the addon.
 

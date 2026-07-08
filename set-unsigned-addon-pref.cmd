@@ -41,6 +41,7 @@ exit /b %EXIT_CODE%
 if "%~1"=="" exit /b 0
 if /I "%~1"=="--dry-run" set "CONFIRM_MODIFY=0"
 if /I "%~1"=="--status" set "CONFIRM_MODIFY=0"
+if /I "%~1"=="--list-profiles" set "CONFIRM_MODIFY=0"
 if /I "%~1"=="-h" set "CONFIRM_MODIFY=0"
 if /I "%~1"=="--help" set "CONFIRM_MODIFY=0"
 shift
@@ -48,9 +49,13 @@ goto classify_args
 
 :confirm_modify
 rem Windows users often arrive here by double-clicking the launcher.
-rem Ask before the launcher starts a real patch or triggers a UAC prompt.
+rem Ask before editing Firefox profile prefs.js files.
 echo.
-echo This will patch Firefox by replacing omni.ja.
+echo Firefox profiles are separate user-data folders.
+echo This changes one setting in Firefox profile prefs.js:
+echo   allow unsigned add-ons.
+echo It does not delete bookmarks, passwords, history, settings, or add-ons.
+echo Without --profile, it uses the default profile. Use --all-profiles only on purpose.
 echo Firefox must be closed. Run --dry-run first to test without changing files.
 echo.
 echo Safer first:

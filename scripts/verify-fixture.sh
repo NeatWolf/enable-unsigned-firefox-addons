@@ -821,6 +821,134 @@ PROFILES_INI
     fi
 }
 
+run_unsigned_addon_pref_fixture() {
+    local name="unsigned-addon-pref-profiles"
+    local firefox_data="$TEMPDIR/$name/firefox-data"
+    local default_profile="$firefox_data/Profiles/default-release"
+    local other_profile="$firefox_data/Profiles/other"
+    local third_profile="$firefox_data/Profiles/third"
+    local no_default_data="$TEMPDIR/$name/no-default-data"
+    local no_default_a="$no_default_data/Profiles/a"
+    local no_default_b="$no_default_data/Profiles/b"
+    local guard_profile="$TEMPDIR/$name/running.default"
+    local fake_bin="$TEMPDIR/$name/fake-bin"
+    local status_output
+    local dry_run_output
+    local list_output
+    local update_output
+    local all_output
+
+    mkdir -p "$default_profile" "$other_profile" "$third_profile" "$no_default_a" "$no_default_b" "$guard_profile" "$fake_bin"
+    cat > "$default_profile/prefs.js" <<'PREFS'
+user_pref("browser.startup.homepage", "about:blank");
+user_pref("xpinstall.signatures.required", true);
+PREFS
+    cat > "$other_profile/prefs.js" <<'PREFS'
+user_pref("xpinstall.signatures.required", true);
+PREFS
+    cat > "$no_default_a/prefs.js" <<'PREFS'
+user_pref("xpinstall.signatures.required", true);
+PREFS
+    cat > "$no_default_b/prefs.js" <<'PREFS'
+user_pref("xpinstall.signatures.required", true);
+PREFS
+    cat > "$guard_profile/prefs.js" <<'PREFS'
+user_pref("xpinstall.signatures.required", true);
+PREFS
+
+    cat > "$firefox_data/profiles.ini" <<PROFILES_INI
+[Profile0]
+Name=default
+IsRelative=1
+Path=Profiles/default-release
+Default=1
+
+[Profile1]
+Name=other
+IsRelative=1
+Path=Profiles/other
+
+[Profile2]
+Name=third
+IsRelative=1
+Path=Profiles/third
+PROFILES_INI
+
+    status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/set-unsigned-addon-pref.sh" --status --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-status" "$status_output" "profiles: 3"
+    assert_output_contains "$name-status" "$status_output" "default profile: $default_profile"
+    assert_output_contains "$name-status" "$status_output" "target profile: $default_profile"
+    assert_output_contains "$name-status" "$status_output" "xpinstall.signatures.required: true"
+
+    list_output=$("$REPO_ROOT/set-unsigned-addon-pref.sh" --list-profiles --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-list" "$list_output" "1|"
+    assert_output_contains "$name-list" "$list_output" "|default"
+    assert_output_contains "$name-list" "$list_output" "2|"
+
+    dry_run_output=$("$REPO_ROOT/set-unsigned-addon-pref.sh" --dry-run --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-dry-run" "$dry_run_output" "Would set xpinstall.signatures.required=false in $default_profile/prefs.js"
+    assert_output_contains "$name-dry-run" "$dry_run_output" "Dry run OK"
+    if grep -Fq 'user_pref("xpinstall.signatures.required", false);' "$default_profile/prefs.js"; then
+        echo "$name: dry-run changed default profile prefs.js"
+        exit 1
+    fi
+
+    update_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/set-unsigned-addon-pref.sh" --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-update-default" "$update_output" "Backup: $default_profile/prefs.js.before-enable-unsigned-addons"
+    assert_output_contains "$name-update-default" "$update_output" "Updated $default_profile/prefs.js"
+    assert_output_contains "$name-update-default" "$update_output" "Done"
+    if ! grep -Fq 'user_pref("xpinstall.signatures.required", false);' "$default_profile/prefs.js"; then
+        echo "$name: default profile pref was not set false"
+        exit 1
+    fi
+    if grep -Fq 'user_pref("xpinstall.signatures.required", false);' "$other_profile/prefs.js"; then
+        echo "$name: default update changed other profile"
+        exit 1
+    fi
+
+    update_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/set-unsigned-addon-pref.sh" --profile "$other_profile")
+    assert_output_contains "$name-update-one-profile" "$update_output" "Updated $other_profile/prefs.js"
+    if ! grep -Fq 'user_pref("xpinstall.signatures.required", false);' "$other_profile/prefs.js"; then
+        echo "$name: explicit profile pref was not set false"
+        exit 1
+    fi
+
+    all_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/set-unsigned-addon-pref.sh" --all-profiles --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-all-profiles" "$all_output" "Updated $third_profile/prefs.js"
+    if ! grep -Fq 'user_pref("xpinstall.signatures.required", false);' "$third_profile/prefs.js"; then
+        echo "$name: all-profiles did not create third profile pref"
+        exit 1
+    fi
+
+    cat > "$no_default_data/profiles.ini" <<PROFILES_INI
+[Profile0]
+Name=a
+IsRelative=1
+Path=Profiles/a
+
+[Profile1]
+Name=b
+IsRelative=1
+Path=Profiles/b
+PROFILES_INI
+    assert_command_fails_with "$name-no-default" "Multiple Firefox profiles were found, but no default profile was detected." \
+        "$REPO_ROOT/set-unsigned-addon-pref.sh" --dry-run --profiles-ini "$no_default_data/profiles.ini"
+
+    cat > "$fake_bin/powershell.exe" <<'POWERSHELL'
+#!/usr/bin/env bash
+echo 12345
+POWERSHELL
+    chmod +x "$fake_bin/powershell.exe"
+    if PATH="$fake_bin:$PATH" "$REPO_ROOT/set-unsigned-addon-pref.sh" --profile "$guard_profile" > /dev/null 2> /dev/null; then
+        echo "$name: profile preference update unexpectedly succeeded while Firefox was reported running"
+        exit 1
+    fi
+    if grep -Fq 'user_pref("xpinstall.signatures.required", false);' "$guard_profile/prefs.js"; then
+        echo "$name: process guard changed prefs.js"
+        exit 1
+    fi
+}
+
 run_roundtrip_fixture "modern-sysm" "modern" "modules/AppConstants.sys.mjs"
 run_roundtrip_fixture "legacy-jsm" "legacy" "modules/AppConstants.jsm"
 run_status_fixture
@@ -837,5 +965,6 @@ run_patch_failure_fixture "missing-appconstants" "missing" "modules/AppConstants
 run_process_guard_fixture
 run_unpatch_process_guard_fixture
 run_startup_cache_fixture
+run_unsigned_addon_pref_fixture
 
 echo "Fixture verification completed."

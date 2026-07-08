@@ -12,9 +12,11 @@ $RequiredFiles = @(
     'patch-firefox.cmd',
     'unpatch-firefox.cmd',
     'clear-startup-cache.cmd',
+    'set-unsigned-addon-pref.cmd',
     'patch-firefox.sh',
     'unpatch-firefox.sh',
     'clear-startup-cache.sh',
+    'set-unsigned-addon-pref.sh',
     'scripts\verify-fixture.sh',
     '.github\workflows-disabled\verify.yml',
     '.github\dependabot-disabled.yml',
@@ -35,9 +37,11 @@ foreach ($RelativePath in $RequiredFiles) {
 $PatchScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'patch-firefox.sh') -Raw
 $UnpatchScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'unpatch-firefox.sh') -Raw
 $StartupCacheScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'clear-startup-cache.sh') -Raw
+$UnsignedAddonPrefScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'set-unsigned-addon-pref.sh') -Raw
 $PatchLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'patch-firefox.cmd') -Raw
 $UnpatchLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'unpatch-firefox.cmd') -Raw
 $StartupCacheLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'clear-startup-cache.cmd') -Raw
+$UnsignedAddonPrefLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'set-unsigned-addon-pref.cmd') -Raw
 $StartWindowsLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'START-WINDOWS.cmd') -Raw
 
 $License = Get-Content -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Raw
@@ -132,12 +136,19 @@ foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', 
     }
 }
 
+foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--status', '--profile', '--profiles-ini', '--all-profiles', '--list-profiles', 'A Firefox profile is the user-data folder', 'xpinstall.signatures.required', 'prefs.js', 'before-enable-unsigned-addons', 'Default=1', 'display_path', 'profile_path_from_ini', 'DEFAULT_PROFILE_DIR', 'TARGET_PROFILE_DIRS', 'print_profile_list', 'Multiple Firefox profiles were found', 'Use --all-profiles only if', 'Firefox appears to be running. Close Firefox before changing the add-on setting', 'Would set $PREF_NAME=false', 'Would create', 'Backup:', 'Updated', 'No add-on setting changes needed', 'Dry run OK', 'clear Firefox startupCache before starting Firefox')) {
+    if (-not $UnsignedAddonPrefScript.Contains($Pattern)) {
+        throw "set-unsigned-addon-pref.sh is missing expected profile preference behavior: $Pattern"
+    }
+}
+
 foreach ($Launcher in @(
     @{ Name = 'patch-firefox.cmd'; Text = $PatchLauncher },
     @{ Name = 'unpatch-firefox.cmd'; Text = $UnpatchLauncher },
-    @{ Name = 'clear-startup-cache.cmd'; Text = $StartupCacheLauncher }
+    @{ Name = 'clear-startup-cache.cmd'; Text = $StartupCacheLauncher },
+    @{ Name = 'set-unsigned-addon-pref.cmd'; Text = $UnsignedAddonPrefLauncher }
 )) {
-    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', 'FIREFOX_PATCH_SKIP_BASH_SEARCH', 'CONFIRM_MODIFY', ':classify_args', '--status', ':confirm_modify', 'Safer first:', '"%~nx0" --dry-run %*', 'choice /C YN /N', 'Cancelled. No files were changed.', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', ':bash_not_found', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", 'Install Git for Windows', 'Git for Windows includes Git Bash', 'WSL bash is not used', '"%BASH_EXE%" "%SCRIPT%" %*')) {
+    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', 'FIREFOX_PATCH_SKIP_BASH_SEARCH', 'FIREFOX_PATCH_ASSUME_YES', 'CONFIRM_MODIFY', ':classify_args', '--status', ':confirm_modify', 'Safer first:', '"%~nx0" --dry-run %*', 'choice /C YN /N', 'Cancelled. No files were changed.', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', ':bash_not_found', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", 'Install Git for Windows', 'Git for Windows includes Git Bash', 'WSL bash is not used', '"%BASH_EXE%" "%SCRIPT%" %*')) {
         if (-not $Launcher.Text.Contains($Pattern)) {
             throw "$($Launcher.Name) is missing expected launcher behavior: $Pattern"
         }
@@ -156,7 +167,13 @@ foreach ($Pattern in @('Firefox must be closed before clearing startupCache.')) 
     }
 }
 
-foreach ($Pattern in @('@echo off', 'Enable Unsigned Firefox Add-ons', 'choice /C 123456789HQ /N', 'Check Firefox patch status', 'Test Firefox patch with dry run', 'Patch Firefox', 'Check startup-cache status', 'Test startup-cache cleanup with dry run', 'Clear startup cache', 'Check restore status', 'Test restore with dry run', 'Restore Firefox from rollback backup', 'Open README', 'patch-firefox.cmd" --status', 'patch-firefox.cmd" --dry-run', 'clear-startup-cache.cmd" --status', 'clear-startup-cache.cmd" --dry-run', 'unpatch-firefox.cmd" --status', 'unpatch-firefox.cmd" --dry-run', 'start "" "%~dp0README.md"', 'pause')) {
+foreach ($Pattern in @('Firefox profiles are separate user-data folders.', 'allow unsigned add-ons.', 'It does not delete bookmarks, passwords, history, settings, or add-ons.', '--all-profiles only on purpose.')) {
+    if (-not $UnsignedAddonPrefLauncher.Contains($Pattern)) {
+        throw "set-unsigned-addon-pref.cmd is missing expected profile explanation: $Pattern"
+    }
+}
+
+foreach ($Pattern in @('@echo off', 'Enable Unsigned Firefox Add-ons', 'choice /C 123456789ABCPHQ /N', 'Check Firefox patch status', 'Test setup with dry run', 'Patch Firefox and choose profile', 'Show Firefox profiles and add-on setting', 'Pick a profile and set add-on setting', 'Check startup cache', 'Preview startup cache cleanup', 'Clear startup cache', 'Check restore status', 'Test restore with dry run', 'Restore Firefox from rollback backup', 'Open README', 'A Firefox profile is a separate Firefox user-data folder', 'Startup cache cleanup does not delete bookmarks, passwords, history', 'set-unsigned-addon-pref.cmd" --list-profiles', 'set-unsigned-addon-pref.cmd" --profile "%SELECTED_PROFILE%"', 'patch-firefox.cmd" --status', 'patch-firefox.cmd" --dry-run', 'clear-startup-cache.cmd" --status', 'clear-startup-cache.cmd" --dry-run', 'unpatch-firefox.cmd" --status', 'unpatch-firefox.cmd" --dry-run', 'start "" "%~dp0README.md"', 'pause')) {
     if (-not $StartWindowsLauncher.Contains($Pattern)) {
         throw "START-WINDOWS.cmd is missing expected menu behavior: $Pattern"
     }
@@ -196,7 +213,7 @@ try {
 }
 
 $FixtureScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\verify-fixture.sh') -Raw
-foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'application: Firefox 99.0', 'build id: 20260101000000', 'write access: available', 'repacker:', 'next step:', 'clear Firefox startupCache before starting Firefox', 'Removed rollback backup:', 'update Firefox, then patch again if unsigned addons are still needed', 'start Firefox and verify MOZ_REQUIRE_SIGNING', 'close Firefox before patching', 'close Firefox before restoring', 'close Firefox before clearing startupCache', 'without --dry-run to patch Firefox', 'without --dry-run to restore Firefox', 'without --dry-run to clear the listed startupCache directories', 'preview startupCache cleanup', 'no startupCache cleanup needed', 'if Firefox uses an unusual profile location', 'path-errors', 'Pass the folder that contains omni.ja', 'Pass a Firefox profile directory', 'Pass a Firefox profiles.ini file', 'Patch refused because rollback backup already exists', 'No rollback backup found', 'MOZ_REQUIRE_SIGNING is already false in AppConstants.', 'modern-dry-run-readonly-home', 'prefixed-omni-warning', 'prefixed-omni-exit-2', 'reported length of central directory is', 'REAL_UNZIP', 'corrupt-omni-crc', 'CORRUPTME_PAYLOAD', 'corrupt archive still reported Dry run OK', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'windows_home', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'running-firefox-unpatch-guard', 'startup-cache-profiles-ini', 'startupCache: present', 'firefox process: running', 'running-dry-run', 'warning: Firefox appears to be running. Close Firefox before running cleanup for real.', 'running dry-run removed startupCache', 'windows-absolute', 'Windows --profile', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
+foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'application: Firefox 99.0', 'build id: 20260101000000', 'write access: available', 'repacker:', 'next step:', 'clear Firefox startupCache before starting Firefox', 'Removed rollback backup:', 'update Firefox, then patch again if unsigned addons are still needed', 'start Firefox and verify MOZ_REQUIRE_SIGNING', 'close Firefox before patching', 'close Firefox before restoring', 'close Firefox before clearing startupCache', 'without --dry-run to patch Firefox', 'without --dry-run to restore Firefox', 'without --dry-run to clear the listed startupCache directories', 'preview startupCache cleanup', 'no startupCache cleanup needed', 'if Firefox uses an unusual profile location', 'path-errors', 'Pass the folder that contains omni.ja', 'Pass a Firefox profile directory', 'Pass a Firefox profiles.ini file', 'Patch refused because rollback backup already exists', 'No rollback backup found', 'MOZ_REQUIRE_SIGNING is already false in AppConstants.', 'modern-dry-run-readonly-home', 'prefixed-omni-warning', 'prefixed-omni-exit-2', 'reported length of central directory is', 'REAL_UNZIP', 'corrupt-omni-crc', 'CORRUPTME_PAYLOAD', 'corrupt archive still reported Dry run OK', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'windows_home', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'running-firefox-unpatch-guard', 'startup-cache-profiles-ini', 'startupCache: present', 'firefox process: running', 'running-dry-run', 'warning: Firefox appears to be running. Close Firefox before running cleanup for real.', 'running dry-run removed startupCache', 'windows-absolute', 'Windows --profile', 'unsigned-addon-pref-profiles', 'set-unsigned-addon-pref.sh', '--list-profiles', 'default update changed other profile', 'Multiple Firefox profiles were found, but no default profile was detected.', 'process guard changed prefs.js', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
     if (-not $FixtureScript.Contains($Pattern)) {
         throw "scripts\verify-fixture.sh is missing expected test coverage: $Pattern"
     }
@@ -231,7 +248,7 @@ foreach ($Pattern in @('provided as-is', 'no support commitment', 'no help desk'
 }
 
 $Changelog = Get-Content -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md') -Raw
-foreach ($Pattern in @('Changelog', 'Unreleased', 'Firefox omni.ja archives', 'double-click Windows start menu', 'release ZIPs', 'download, folder placement', 'source-available showcase license', 'Parked GitHub Actions', 'as-is/no-support', 'corrupt archives', 'Windows CI', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'matching dry-run command', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
+foreach ($Pattern in @('Changelog', 'Unreleased', 'profile picker', 'startup cache is rebuildable', 'Firefox omni.ja archives', 'double-click Windows start menu', 'release ZIPs', 'download, folder placement', 'source-available showcase license', 'Parked GitHub Actions', 'as-is/no-support', 'corrupt archives', 'Windows CI', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'matching dry-run command', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
     if (-not $Changelog.Contains($Pattern)) {
         throw "CHANGELOG.md is missing expected summary text: $Pattern"
     }
@@ -252,7 +269,7 @@ foreach ($Pattern in @('No supported versions', 'provided as-is', 'Report Firefo
 }
 
 $Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
-foreach ($Pattern in @('This modifies a local Firefox install', 'no compatibility guarantee', 'Keep your own backup or be ready to reinstall Firefox', 'source-available showcase software', 'AI training', 'LICENSE', 'SUPPORT.md', 'latest release ZIP', 'Do not download files one by one', 'enable-unsigned-firefox-addons.zip', 'double-click `START-WINDOWS.cmd`', 'Do not put the scripts inside the Firefox install folder', 'Choose `1` to check Firefox patch status', 'Choose `2` to test the patch with a dry run', 'Advanced command-line use', 'patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'matching `--dry-run` command', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'START-WINDOWS.cmd', 'workflows-disabled', 'dependabot-disabled', 'CHANGELOG.md', 'MAINTENANCE.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
+foreach ($Pattern in @('This modifies a local Firefox install', 'no compatibility guarantee', 'Keep your own backup or be ready to reinstall Firefox', 'source-available showcase software', 'AI training', 'LICENSE', 'SUPPORT.md', 'latest release ZIP', 'Do not download files one by one', 'enable-unsigned-firefox-addons.zip', 'double-click `START-WINDOWS.cmd`', 'Do not put the scripts inside the Firefox install folder', 'Choose `1` to check Firefox patch status', 'Choose `2` to pick a Firefox profile and test the setup without changing files', 'asks again which Firefox profile should allow unsigned add-ons', 'a profile is Firefox''s user-data folder', 'This does not delete bookmarks, passwords, history, form data, settings, cookies, add-ons, or profiles', 'explicitly use `--all-profiles`', 'Advanced command-line use', 'patch-firefox.cmd --status', 'set-unsigned-addon-pref.cmd --status', 'set-unsigned-addon-pref.sh --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'matching `--dry-run` command', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'START-WINDOWS.cmd', 'workflows-disabled', 'dependabot-disabled', 'CHANGELOG.md', 'MAINTENANCE.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
     if (-not $Readme.Contains($Pattern)) {
         throw "README.md is missing expected Windows launcher guidance: $Pattern"
     }
@@ -290,7 +307,7 @@ $UsableBash = $BashCandidates |
 if ($null -eq $UsableBash) {
     Write-Warning 'No non-WSL Bash was found; skipped bash -n syntax checks. Use Git Bash or run bash -n manually inside a working Unix-like environment.'
 } else {
-    $Scripts = @('patch-firefox.sh', 'unpatch-firefox.sh', 'clear-startup-cache.sh')
+    $Scripts = @('patch-firefox.sh', 'unpatch-firefox.sh', 'clear-startup-cache.sh', 'set-unsigned-addon-pref.sh')
     foreach ($Script in $Scripts) {
         $ScriptPath = Join-Path $RepoRoot $Script
         & $UsableBash -n $ScriptPath
@@ -305,7 +322,7 @@ if ($null -eq $UsableBash) {
         throw 'Bash syntax check failed for scripts\verify-fixture.sh.'
     }
 
-    $Launchers = @('patch-firefox.cmd', 'unpatch-firefox.cmd', 'clear-startup-cache.cmd')
+    $Launchers = @('patch-firefox.cmd', 'unpatch-firefox.cmd', 'clear-startup-cache.cmd', 'set-unsigned-addon-pref.cmd')
     foreach ($Launcher in $Launchers) {
         $LauncherPath = Join-Path $RepoRoot $Launcher
         & cmd.exe /d /c "`"$LauncherPath`" --help"
