@@ -62,6 +62,8 @@ On Windows, start from PowerShell or Command Prompt:
 .\clear-startup-cache.cmd
 ```
 
+You can also double-click a `.cmd` launcher. If it fails when launched that way, it leaves the window open so the error message can be read. Command-line use exits normally.
+
 If the Windows launcher cannot auto-detect the install directory, pass it explicitly:
 
 ```powershell

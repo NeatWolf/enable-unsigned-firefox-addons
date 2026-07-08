@@ -1,17 +1,37 @@
 @echo off
 setlocal
 
+set "PAUSE_ON_ERROR=1"
+if not "%~1"=="" set "PAUSE_ON_ERROR=0"
+if defined FIREFOX_PATCH_NO_PAUSE set "PAUSE_ON_ERROR=0"
+
 set "SCRIPT=%~dpn0.sh"
 if not exist "%SCRIPT%" (
     echo Couldn't find %SCRIPT%
+    call :pause_on_error
     exit /b 1
 )
 
 call :find_bash
-if errorlevel 1 exit /b 1
+set "EXIT_CODE=%ERRORLEVEL%"
+if not "%EXIT_CODE%"=="0" (
+    call :pause_on_error
+    exit /b %EXIT_CODE%
+)
 
 "%BASH_EXE%" "%SCRIPT%" %*
-exit /b %ERRORLEVEL%
+set "EXIT_CODE=%ERRORLEVEL%"
+if not "%EXIT_CODE%"=="0" call :pause_on_error
+exit /b %EXIT_CODE%
+
+:pause_on_error
+rem A double-clicked .cmd starts with no arguments and closes on failure.
+rem Keep that error visible; normal command-line use stays non-interactive.
+if not "%PAUSE_ON_ERROR%"=="1" exit /b 0
+echo.
+echo The command failed. Press any key to close this window.
+pause >nul
+exit /b 0
 
 :find_bash
 for %%P in (
