@@ -85,6 +85,8 @@ The Windows launchers accept normal Windows install paths such as `C:\Program Fi
 
 For patch and restore commands, pass the Firefox install folder that contains `omni.ja`. For startup-cache cleanup, pass a Firefox profile directory or a `profiles.ini` file when auto-detection is not enough.
 
+Git for Windows includes Git Bash. The `.cmd` launchers use Git Bash and intentionally skip WSL bash.
+
 From Git Bash, macOS, or Linux, use the shell scripts directly:
 
 ```bash

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added safer Windows launchers with confirmation prompts for file-changing actions.
+- Improved Windows launcher guidance when Git Bash is missing.
 - Added status and dry-run checks for patching, restoring, and startup-cache cleanup.
 - Added status output for Firefox install write access before real patch or restore commands.
 - Added patch status output for the archive repacker that would rebuild `omni.ja`.

@@ -119,10 +119,43 @@ foreach ($Launcher in @(
     @{ Name = 'unpatch-firefox.cmd'; Text = $UnpatchLauncher },
     @{ Name = 'clear-startup-cache.cmd'; Text = $StartupCacheLauncher }
 )) {
-    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', 'CONFIRM_MODIFY', ':classify_args', '--status', ':confirm_modify', 'choice /C YN /N', 'Cancelled. No files were changed.', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", '"%BASH_EXE%" "%SCRIPT%" %*')) {
+    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', 'FIREFOX_PATCH_SKIP_BASH_SEARCH', 'CONFIRM_MODIFY', ':classify_args', '--status', ':confirm_modify', 'choice /C YN /N', 'Cancelled. No files were changed.', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', ':bash_not_found', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", 'Install Git for Windows', 'Git for Windows includes Git Bash', 'WSL bash is not used', '"%BASH_EXE%" "%SCRIPT%" %*')) {
         if (-not $Launcher.Text.Contains($Pattern)) {
             throw "$($Launcher.Name) is missing expected launcher behavior: $Pattern"
         }
+    }
+}
+
+$PatchLauncherPath = Join-Path $RepoRoot 'patch-firefox.cmd'
+$SavedNoPause = $env:FIREFOX_PATCH_NO_PAUSE
+$SavedSkipBashSearch = $env:FIREFOX_PATCH_SKIP_BASH_SEARCH
+try {
+    $env:FIREFOX_PATCH_NO_PAUSE = '1'
+    $env:FIREFOX_PATCH_SKIP_BASH_SEARCH = '1'
+
+    $MissingBashOutput = & cmd.exe /d /c "`"$PatchLauncherPath`" --help" 2>&1
+    $MissingBashExitCode = $LASTEXITCODE
+    $MissingBashText = $MissingBashOutput -join "`n"
+
+    if ($MissingBashExitCode -eq 0) {
+        throw 'Windows launcher missing-Git-Bash check unexpectedly succeeded.'
+    }
+
+    foreach ($Pattern in @("Couldn't find Git Bash", 'Install Git for Windows', 'Reopen this launcher after installing it', 'WSL bash is not used by this launcher')) {
+        if (-not $MissingBashText.Contains($Pattern)) {
+            throw "Windows launcher missing-Git-Bash output is missing: $Pattern"
+        }
+    }
+} finally {
+    if ($null -eq $SavedNoPause) {
+        Remove-Item Env:FIREFOX_PATCH_NO_PAUSE -ErrorAction SilentlyContinue
+    } else {
+        $env:FIREFOX_PATCH_NO_PAUSE = $SavedNoPause
+    }
+    if ($null -eq $SavedSkipBashSearch) {
+        Remove-Item Env:FIREFOX_PATCH_SKIP_BASH_SEARCH -ErrorAction SilentlyContinue
+    } else {
+        $env:FIREFOX_PATCH_SKIP_BASH_SEARCH = $SavedSkipBashSearch
     }
 }
 
@@ -197,7 +230,7 @@ foreach ($Pattern in @('No supported versions', 'provided as-is', 'Report Firefo
 }
 
 $Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
-foreach ($Pattern in @('patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'CHANGELOG.md', 'CODE_OF_CONDUCT.md', 'MAINTENANCE.md', 'pull_request_template.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
+foreach ($Pattern in @('patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'CHANGELOG.md', 'CODE_OF_CONDUCT.md', 'MAINTENANCE.md', 'pull_request_template.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
     if (-not $Readme.Contains($Pattern)) {
         throw "README.md is missing expected Windows launcher guidance: $Pattern"
     }

@@ -68,6 +68,8 @@ pause >nul
 exit /b 0
 
 :find_bash
+if defined FIREFOX_PATCH_SKIP_BASH_SEARCH goto bash_not_found
+
 for %%P in (
     "%ProgramFiles%\Git\bin\bash.exe"
     "%ProgramFiles%\Git\usr\bin\bash.exe"
@@ -90,7 +92,11 @@ for /f "delims=" %%P in ('where bash.exe 2^>nul') do (
     )
 )
 
-echo Couldn't find Git Bash. Install Git for Windows from https://git-scm.com/download/win
+:bash_not_found
+echo Couldn't find Git Bash.
+echo Install Git for Windows from https://git-scm.com/download/win
+echo Git for Windows includes Git Bash. Reopen this launcher after installing it.
+echo WSL bash is not used by this launcher.
 exit /b 1
 
 :is_wsl_bash
