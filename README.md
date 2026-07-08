@@ -20,7 +20,8 @@ Download the latest release ZIP. Do not download files one by one, and do not us
 1. Open [Releases](https://github.com/NeatWolf/enable-unsigned-firefox-addons/releases/latest).
 1. Download `enable-unsigned-firefox-addons.zip` from the release assets.
 1. Extract it anywhere convenient, such as `Downloads` or `Desktop`.
-1. Open the extracted folder and run the launcher from there.
+1. On Windows, open the extracted folder and double-click `START-WINDOWS.cmd`.
+1. On Git Bash, macOS, or Linux, use the commands in the Advanced command-line use section below.
 
 Do not copy individual files around. Do not put the scripts inside the Firefox install folder.
 
@@ -28,14 +29,29 @@ The release ZIP contains only the files normal users need:
 
 | System | Run these files |
 | --- | --- |
-| Windows | `patch-firefox.cmd`, `unpatch-firefox.cmd`, `clear-startup-cache.cmd` |
+| Windows | `START-WINDOWS.cmd` |
 | Git Bash, macOS, Linux | `patch-firefox.sh`, `unpatch-firefox.sh`, `clear-startup-cache.sh` |
 
 The source repository contains extra documentation, local verification, and repository metadata. Normal users do not need those files.
 
 ## Quick start
 
-Open PowerShell or Command Prompt in the extracted folder:
+On Windows:
+
+1. Double-click `START-WINDOWS.cmd`.
+1. Choose `1` to check Firefox patch status.
+1. Choose `2` to test the patch with a dry run.
+1. Choose `3` to patch Firefox only after the dry run succeeds.
+1. Choose `4`, then `5`, then `6` to check, preview, and clear Firefox startup cache.
+1. Use `7`, `8`, and `9` later when you want to restore Firefox before updating it.
+
+The menu opens in the correct folder automatically. Real patch, restore, and cache-cleanup actions ask before changing files. If Windows needs administrator permission for a protected Firefox install, the launcher requests it when the real action starts.
+
+## Advanced command-line use
+
+These commands are for users who already prefer a terminal.
+
+From Windows, run these from the extracted folder:
 
 ```powershell
 .\patch-firefox.cmd --status
@@ -45,8 +61,6 @@ Open PowerShell or Command Prompt in the extracted folder:
 .\clear-startup-cache.cmd --dry-run
 .\clear-startup-cache.cmd
 ```
-
-You can also double-click a `.cmd` launcher. If it fails when launched that way, it leaves the window open so the error message can be read. Command-line use exits normally.
 
 From Git Bash, macOS, or Linux, run these from the extracted folder:
 
@@ -94,6 +108,7 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `patch-firefox.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `patch-firefox.sh`.
 - `unpatch-firefox.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `unpatch-firefox.sh`.
 - `clear-startup-cache.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `clear-startup-cache.sh`.
+- `START-WINDOWS.cmd`: double-click Windows menu for status, dry-run, patch, startup-cache cleanup, restore, and README access.
 - `patch-firefox.sh`: inspects status, dry-runs safely, edits Firefox `AppConstants`, verifies the replacement archive, then backs up `omni.ja` to `omni-orig.ja` and swaps in the patched archive.
 - `unpatch-firefox.sh`: inspects status, dry-runs safely, restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
 - `clear-startup-cache.sh`: inspects or clears Firefox profile `startupCache` directories listed in `profiles.ini`, with status and dry-run support.

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a double-click Windows start menu for status, dry-run, patch, startup-cache cleanup, and restore actions.
 - Switched normal-user download guidance from source ZIPs to release ZIPs.
 - Added clearer download, folder placement, and platform file guidance for normal users.
 - Replaced the MIT license with a source-available showcase license and removed contribution-oriented files.

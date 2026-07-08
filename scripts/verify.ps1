@@ -7,6 +7,7 @@ $RequiredFiles = @(
     'CHANGELOG.md',
     'MAINTENANCE.md',
     'SUPPORT.md',
+    'START-WINDOWS.cmd',
     'LICENSE',
     'patch-firefox.cmd',
     'unpatch-firefox.cmd',
@@ -37,6 +38,7 @@ $StartupCacheScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'clear-start
 $PatchLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'patch-firefox.cmd') -Raw
 $UnpatchLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'unpatch-firefox.cmd') -Raw
 $StartupCacheLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'clear-startup-cache.cmd') -Raw
+$StartWindowsLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'START-WINDOWS.cmd') -Raw
 
 $License = Get-Content -LiteralPath (Join-Path $RepoRoot 'LICENSE') -Raw
 foreach ($Pattern in @('Source-Available Showcase License', 'Copyright (c) 2026 NeatWolf', 'personal local testing only', 'artificial-intelligence training', 'provided as-is')) {
@@ -150,6 +152,12 @@ foreach ($Pattern in @('Firefox must be closed before clearing startupCache.')) 
     }
 }
 
+foreach ($Pattern in @('@echo off', 'Enable Unsigned Firefox Add-ons', 'choice /C 123456789HQ /N', 'Check Firefox patch status', 'Test Firefox patch with dry run', 'Patch Firefox', 'Check startup-cache status', 'Test startup-cache cleanup with dry run', 'Clear startup cache', 'Check restore status', 'Test restore with dry run', 'Restore Firefox from rollback backup', 'Open README', 'patch-firefox.cmd" --status', 'patch-firefox.cmd" --dry-run', 'clear-startup-cache.cmd" --status', 'clear-startup-cache.cmd" --dry-run', 'unpatch-firefox.cmd" --status', 'unpatch-firefox.cmd" --dry-run', 'start "" "%~dp0README.md"', 'pause')) {
+    if (-not $StartWindowsLauncher.Contains($Pattern)) {
+        throw "START-WINDOWS.cmd is missing expected menu behavior: $Pattern"
+    }
+}
+
 $PatchLauncherPath = Join-Path $RepoRoot 'patch-firefox.cmd'
 $SavedNoPause = $env:FIREFOX_PATCH_NO_PAUSE
 $SavedSkipBashSearch = $env:FIREFOX_PATCH_SKIP_BASH_SEARCH
@@ -219,7 +227,7 @@ foreach ($Pattern in @('provided as-is', 'no support commitment', 'no help desk'
 }
 
 $Changelog = Get-Content -LiteralPath (Join-Path $RepoRoot 'CHANGELOG.md') -Raw
-foreach ($Pattern in @('Changelog', 'Unreleased', 'release ZIPs', 'download, folder placement', 'source-available showcase license', 'Parked GitHub Actions', 'as-is/no-support', 'corrupt archives', 'Windows CI', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'matching dry-run command', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
+foreach ($Pattern in @('Changelog', 'Unreleased', 'double-click Windows start menu', 'release ZIPs', 'download, folder placement', 'source-available showcase license', 'Parked GitHub Actions', 'as-is/no-support', 'corrupt archives', 'Windows CI', 'safer Windows launchers', 'write access', 'path error', 'restore removes', 'running Firefox guard', 'repacker', 'success next-step', 'next-step', 'startupCache', 'dry-run', 'matching dry-run command', 'startupCache dry-run warning', 'PowerShell/.NET archive rebuilding', 'repository verification')) {
     if (-not $Changelog.Contains($Pattern)) {
         throw "CHANGELOG.md is missing expected summary text: $Pattern"
     }
@@ -240,7 +248,7 @@ foreach ($Pattern in @('No supported versions', 'provided as-is', 'Report Firefo
 }
 
 $Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
-foreach ($Pattern in @('This modifies a local Firefox install', 'no compatibility guarantee', 'Keep your own backup or be ready to reinstall Firefox', 'source-available showcase software', 'AI training', 'LICENSE', 'SUPPORT.md', 'latest release ZIP', 'Do not download files one by one', 'enable-unsigned-firefox-addons.zip', 'Open the extracted folder', 'Do not put the scripts inside the Firefox install folder', 'patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'matching `--dry-run` command', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'workflows-disabled', 'dependabot-disabled', 'CHANGELOG.md', 'MAINTENANCE.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
+foreach ($Pattern in @('This modifies a local Firefox install', 'no compatibility guarantee', 'Keep your own backup or be ready to reinstall Firefox', 'source-available showcase software', 'AI training', 'LICENSE', 'SUPPORT.md', 'latest release ZIP', 'Do not download files one by one', 'enable-unsigned-firefox-addons.zip', 'double-click `START-WINDOWS.cmd`', 'Do not put the scripts inside the Firefox install folder', 'Choose `1` to check Firefox patch status', 'Choose `2` to test the patch with a dry run', 'Advanced command-line use', 'patch-firefox.cmd --status', 'Firefox application version and build ID', 'archive repacker', 'next step', 'Successful commands print the next practical step', 'same command without `--dry-run`', 'patch-firefox.cmd --dry-run', 'matching `--dry-run` command', 'restore removes `omni-orig.ja`', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'startupCache folders are present', 'Firefox is still running', 'dry run warns', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'folder that contains `omni.ja`', 'Firefox profile directory', 'Git for Windows includes Git Bash', 'START-WINDOWS.cmd', 'workflows-disabled', 'dependabot-disabled', 'CHANGELOG.md', 'MAINTENANCE.md', 'SECURITY.md', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
     if (-not $Readme.Contains($Pattern)) {
         throw "README.md is missing expected Windows launcher guidance: $Pattern"
     }
