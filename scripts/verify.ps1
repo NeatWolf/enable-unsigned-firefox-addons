@@ -5,6 +5,8 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $RequiredFiles = @(
     'README.md',
     'SUPPORT.md',
+    'patch-firefox.cmd',
+    'unpatch-firefox.cmd',
     'patch-firefox.sh',
     'unpatch-firefox.sh',
     'scripts\verify-fixture.sh',
@@ -25,6 +27,8 @@ foreach ($RelativePath in $RequiredFiles) {
 
 $PatchScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'patch-firefox.sh') -Raw
 $UnpatchScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'unpatch-firefox.sh') -Raw
+$PatchLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'patch-firefox.cmd') -Raw
+$UnpatchLauncher = Get-Content -LiteralPath (Join-Path $RepoRoot 'unpatch-firefox.cmd') -Raw
 
 $PatchRequiredPatterns = @(
     '#!/usr/bin/env bash',
@@ -73,6 +77,17 @@ foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', 
     }
 }
 
+foreach ($Launcher in @(
+    @{ Name = 'patch-firefox.cmd'; Text = $PatchLauncher },
+    @{ Name = 'unpatch-firefox.cmd'; Text = $UnpatchLauncher }
+)) {
+    foreach ($Pattern in @('@echo off', '%~dpn0.sh', ':find_bash', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", '"%BASH_EXE%" "%SCRIPT%" %*')) {
+        if (-not $Launcher.Text.Contains($Pattern)) {
+            throw "$($Launcher.Name) is missing expected launcher behavior: $Pattern"
+        }
+    }
+}
+
 $FixtureScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\verify-fixture.sh') -Raw
 foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'modern-dry-run-readonly-home', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
     if (-not $FixtureScript.Contains($Pattern)) {
@@ -95,10 +110,22 @@ foreach ($Pattern in @('package-ecosystem: "github-actions"', 'interval: "monthl
 }
 
 $SupportPolicy = Get-Content -LiteralPath (Join-Path $RepoRoot 'SUPPORT.md') -Raw
-foreach ($Pattern in @('provided as-is', 'no support commitment', 'patch-firefox.sh --status', 'patch-firefox.sh --dry-run')) {
+foreach ($Pattern in @('provided as-is', 'no support commitment', 'patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'patch-firefox.sh --status', 'patch-firefox.sh --dry-run')) {
     if (-not $SupportPolicy.Contains($Pattern)) {
         throw "SUPPORT.md is missing expected policy text: $Pattern"
     }
+}
+
+$Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
+foreach ($Pattern in @('patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'C:\Program Files\Mozilla Firefox')) {
+    if (-not $Readme.Contains($Pattern)) {
+        throw "README.md is missing expected Windows launcher guidance: $Pattern"
+    }
+}
+
+$GitAttributes = Get-Content -LiteralPath (Join-Path $RepoRoot '.gitattributes') -Raw
+if (-not $GitAttributes.Contains('*.cmd text eol=crlf')) {
+    throw '.gitattributes must keep Windows launchers as CRLF.'
 }
 
 $WslBashPaths = @(
@@ -141,6 +168,15 @@ if ($null -eq $UsableBash) {
     & $UsableBash -n $FixtureScriptPath
     if ($LASTEXITCODE -ne 0) {
         throw 'Bash syntax check failed for scripts\verify-fixture.sh.'
+    }
+
+    $Launchers = @('patch-firefox.cmd', 'unpatch-firefox.cmd')
+    foreach ($Launcher in $Launchers) {
+        $LauncherPath = Join-Path $RepoRoot $Launcher
+        & cmd.exe /d /c "`"$LauncherPath`" --help"
+        if ($LASTEXITCODE -ne 0) {
+            throw "Windows launcher help check failed for $Launcher."
+        }
     }
 
     $MissingTools = @(& $UsableBash -lc 'for tool in unzip mktemp sed grep; do command -v "$tool" >/dev/null 2>&1 || echo "$tool"; done; command -v zip >/dev/null 2>&1 || command -v powershell.exe >/dev/null 2>&1 || command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1 || echo "zip, powershell.exe, or python3/python"')
