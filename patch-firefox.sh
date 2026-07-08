@@ -366,7 +366,8 @@ patch_require_signing() {
     local current_const
 
     if app_constants_is_false "$app_constants_file"; then
-        echo "MOZ_REQUIRE_SIGNING is already false"
+        echo "MOZ_REQUIRE_SIGNING is already false in AppConstants."
+        echo "Nothing was changed. Run --status to check whether a rollback backup exists."
         exit 1
     fi
 
@@ -612,7 +613,9 @@ if [[ ! -f $OMNI_FILE ]]; then
 fi
 
 if [[ $STATUS_MODE -eq 0 && -f $ORIGINAL_OMNI_FILE ]]; then
-    echo "Already patched?"
+    echo "Patch refused because rollback backup already exists: $ORIGINAL_OMNI_FILE"
+    echo "Firefox may already be patched. Run --status to inspect this install."
+    echo "To restore the backup before patching again, run unpatch-firefox.sh."
     exit 1
 fi
 
@@ -648,6 +651,7 @@ fi
 APP_CONSTANTS_FILE=$(find_app_constants "$TEMPDIR" || true)
 if [[ -z $APP_CONSTANTS_FILE ]]; then
     echo "Couldn't extract AppConstants from $OMNI_FILE"
+    echo "Firefox's archive layout may have changed. No files were changed."
     print_extract_details "$UNZIP_LOG"
     exit 1
 fi

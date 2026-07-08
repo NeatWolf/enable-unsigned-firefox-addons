@@ -238,6 +238,21 @@ assert_output_contains() {
     esac
 }
 
+assert_command_fails_with() {
+    local name=$1
+    local expected=$2
+    shift 2
+    local output
+
+    if output=$("$@" 2>&1); then
+        echo "$name: command unexpectedly succeeded"
+        printf '%s\n' "$output"
+        exit 1
+    fi
+
+    assert_output_contains "$name" "$output" "$expected"
+}
+
 run_roundtrip_fixture() {
     local name=$1
     local format=$2
@@ -253,6 +268,9 @@ run_roundtrip_fixture() {
     fi
     assert_app_constants_value "$name-patched" "$fixture_home/omni.ja" "$app_constants_relpath" "false"
 
+    assert_command_fails_with "$name-already-backed-up" "Patch refused because rollback backup already exists" \
+        env SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh"
+
     MOZILLA_HOME="$fixture_home" "$REPO_ROOT/unpatch-firefox.sh" --dry-run > /dev/null
     if [[ ! -f "$fixture_home/omni-orig.ja" ]]; then
         echo "$name: unpatch dry-run removed omni-orig.ja"
@@ -266,6 +284,9 @@ run_roundtrip_fixture() {
         exit 1
     fi
     assert_app_constants_value "$name-restored" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
+
+    assert_command_fails_with "$name-no-backup" "No rollback backup found" \
+        env SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/unpatch-firefox.sh"
 }
 
 run_status_fixture() {
@@ -387,6 +408,11 @@ run_patch_failure_fixture() {
     if SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" > /dev/null 2> /dev/null; then
         echo "$name: patch unexpectedly succeeded"
         exit 1
+    fi
+
+    if [[ $format == "modern-false" ]]; then
+        assert_command_fails_with "$name-message" "MOZ_REQUIRE_SIGNING is already false in AppConstants." \
+            env SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh"
     fi
 
     assert_no_patch_side_effects "$name" "$fixture_home"

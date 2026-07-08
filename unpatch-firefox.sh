@@ -467,7 +467,8 @@ if [[ $STATUS_MODE -eq 1 ]]; then
 fi
 
 if [[ ! -f $ORIGINAL_OMNI_FILE ]]; then
-    echo "Not already patched"
+    echo "No rollback backup found: $ORIGINAL_OMNI_FILE"
+    echo "Nothing was restored. Run --status to inspect this install."
     exit 1
 fi
 

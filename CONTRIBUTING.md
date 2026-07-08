@@ -7,4 +7,4 @@ Keep this repository narrow and reversible.
 - Prefer fixture-based or static checks for pull requests.
 - Keep shell scripts compatible with Bash and common Unix command-line tools listed in `README.md`.
 - Run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1` before handing off changes.
-
+- Keep pull requests about repo or script improvements, not support requests for a local Firefox install.

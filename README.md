@@ -33,6 +33,7 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
 - `.github/ISSUE_TEMPLATE/config.yml`: disables blank GitHub issues and points readers back to the as-is support policy.
+- `.github/pull_request_template.md`: contribution checklist for narrow, verified script changes.
 - `AGENTS.md`: rules for future automated work in this repository.
 - `SUPPORT.md`: support policy and as-is notice.
 - `SECURITY.md`: security policy and supported-version notice.
