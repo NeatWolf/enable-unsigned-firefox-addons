@@ -232,6 +232,16 @@ ensure_write_access_or_relaunch() {
     exit 1
 }
 
+write_access_status() {
+    if [[ -w $MOZILLA_HOME && -w $OMNI_FILE ]]; then
+        printf 'available\n'
+    elif is_windows_admin; then
+        printf 'available as administrator\n'
+    else
+        printf 'requires administrator permission\n'
+    fi
+}
+
 firefox_is_running_for_home() {
     local mozilla_home=$1
     local mozilla_home_physical
@@ -401,6 +411,7 @@ print_status() {
     else
         echo "omni-orig.ja: absent"
     fi
+    echo "write access: $(write_access_status)"
 
     if firefox_is_running_for_home "$MOZILLA_HOME"; then
         echo "firefox process: running from MOZILLA_HOME"

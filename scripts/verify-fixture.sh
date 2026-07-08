@@ -302,12 +302,14 @@ run_status_fixture() {
     assert_output_contains "$name-patch-unpatched" "$status_output" "build id: 20260101000000"
     assert_output_contains "$name-patch-unpatched" "$status_output" "MOZ_REQUIRE_SIGNING: true"
     assert_output_contains "$name-patch-unpatched" "$status_output" "omni-orig.ja: absent"
+    assert_output_contains "$name-patch-unpatched" "$status_output" "write access: available"
     assert_output_contains "$name-patch-unpatched" "$status_output" "state: unpatched"
 
     status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$fixture_home")
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "application: Firefox 99.0"
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "build id: 20260101000000"
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "MOZ_REQUIRE_SIGNING: true"
+    assert_output_contains "$name-unpatch-unpatched" "$status_output" "write access: available"
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "state: unpatched"
 
     SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null

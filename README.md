@@ -31,6 +31,7 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `unpatch-firefox.sh`: inspects status, dry-runs safely, restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
 - `clear-startup-cache.sh`: inspects or clears Firefox profile `startupCache` directories listed in `profiles.ini`, with status and dry-run support.
 - `CHANGELOG.md`: high-level summary of user-visible script and repository changes.
+- `CODE_OF_CONDUCT.md`: contribution conduct note that keeps discussion factual and out of support scope.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
 - `.github/ISSUE_TEMPLATE/config.yml`: disables blank GitHub issues and points readers back to the as-is support policy.
