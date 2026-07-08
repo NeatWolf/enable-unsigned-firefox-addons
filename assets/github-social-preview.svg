@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="enable unsigned firefox addons">
+  <rect width="1280" height="640" fill="#101820"/>
+  <rect x="56" y="56" width="1168" height="528" rx="28" fill="#16232e" stroke="#6fd6ff" stroke-opacity="0.28" stroke-width="2"/>
+  <path d="M96 472h1088" stroke="#6fd6ff" stroke-opacity="0.35" stroke-width="2"/>
+  <circle cx="1080" cy="176" r="58" fill="#f2b84b"/>
+  <circle cx="1080" cy="176" r="32" fill="#101820"/>
+  <path d="M1043 220c24 25 64 29 92 9" fill="none" stroke="#f2b84b" stroke-width="14" stroke-linecap="round"/>
+  <text x="96" y="254" fill="#f7fbff" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="72" font-weight="700" letter-spacing="0">enable unsigned</text>
+  <text x="96" y="340" fill="#f7fbff" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="72" font-weight="700" letter-spacing="0">firefox addons</text>
+  <text x="96" y="526" fill="#b8c7d4" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="32" letter-spacing="0">local patch scripts · dry-run first · provided as-is</text>
+</svg>

@@ -11,3 +11,10 @@ Useful checks before changing scripts:
 - Keep script output direct enough for inexperienced users and clear enough for technical users.
 - Update `CHANGELOG.md` when behavior visible to users changes.
 - If the owner wants no support channel, disable Issues and Discussions in GitHub repository settings. Files in this repo can only set boundaries, not turn those features off.
+
+## GitHub Presentation
+
+- About description: `Patch local Firefox installs to allow unsigned add-ons. Provided as-is.`
+- Topics: `firefox`, `addons`, `webextensions`, `unsigned-addons`, `bash`, `windows`, `git-bash`
+- Disable Issues and Discussions if no support channel is desired.
+- Upload `assets/github-social-preview.svg` as the social preview.

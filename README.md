@@ -1,12 +1,52 @@
-# Purpose
+# enable unsigned Firefox addons
 
 [![Verify](https://github.com/NeatWolf/enable-unsigned-firefox-addons/actions/workflows/verify.yml/badge.svg)](https://github.com/NeatWolf/enable-unsigned-firefox-addons/actions/workflows/verify.yml)
 
-This lets you modify your local Firefox installation so that you can use a standard release channel Firefox, but still install unsigned addons.
+Patch a local Firefox Release install so unsigned addons can be loaded without switching to Developer Edition.
 
-You probably only want to do this if you are a developer of add-ons (for example, of your own personal addons you want to run locally but not share with Mozilla for signing).
+> Warning: This modifies a local Firefox install. Future Firefox releases can break it. This project is provided as-is, with no support commitment and no compatibility guarantee. Keep your own backup or be ready to reinstall Firefox. See `LICENSE` and `SUPPORT.md`.
 
-This modifies a local Firefox install. Future Firefox releases can break it. This project is provided as-is, with no support commitment and no compatibility guarantee. Keep your own backup or be ready to reinstall Firefox. See `LICENSE` and `SUPPORT.md`.
+# Quick start
+
+Windows PowerShell or Command Prompt:
+
+```powershell
+.\patch-firefox.cmd --status
+.\patch-firefox.cmd --dry-run
+.\patch-firefox.cmd
+.\clear-startup-cache.cmd --status
+.\clear-startup-cache.cmd --dry-run
+.\clear-startup-cache.cmd
+```
+
+You can also double-click a `.cmd` launcher. If it fails when launched that way, it leaves the window open so the error message can be read. Command-line use exits normally.
+
+Git Bash, macOS, or Linux:
+
+```bash
+./patch-firefox.sh --status
+./patch-firefox.sh --dry-run
+./patch-firefox.sh
+./clear-startup-cache.sh --status
+./clear-startup-cache.sh --dry-run
+./clear-startup-cache.sh
+```
+
+Run `--status` first, then `--dry-run`. The Windows launchers ask for confirmation before modifying files and show the matching `--dry-run` command to try first. `--status`, `--dry-run`, and `--help` do not ask and do not change Firefox. Successful commands print the next practical step before exiting.
+
+If auto-detection does not find Firefox, pass the install directory explicitly:
+
+```powershell
+.\patch-firefox.cmd --status --mozilla-home "C:\Program Files\Mozilla Firefox"
+.\patch-firefox.cmd --dry-run --mozilla-home "C:\Program Files\Mozilla Firefox"
+.\patch-firefox.cmd --mozilla-home "C:\Program Files\Mozilla Firefox"
+```
+
+Bash accepts the same `--mozilla-home /path/to/firefox` option.
+
+For patch and restore commands, pass the Firefox install folder that contains `omni.ja`. For startup-cache cleanup, pass a Firefox profile directory or a `profiles.ini` file when auto-detection is not enough. The Windows launchers accept normal Windows install paths such as `C:\Program Files\Mozilla Firefox`; the scripts normalize them when needed.
+
+Git for Windows includes Git Bash. The `.cmd` launchers use Git Bash and intentionally skip WSL bash.
 
 # About unsigned addon support
 
@@ -14,7 +54,7 @@ The standard release channel builds of Firefox now have a setting built into the
 
 [Firefox Developer Edition](https://www.mozilla.org/en-US/firefox/developer/) doesn't have this limitation. You can install unsigned extensions by downloading Firefox Developer Edition and then toggle `xpinstall.signatures.required` to false in `about:config`. The Developer Edition is effectively a beta release channel, and is updated nightly.
 
-For various reasons, you might prefer to be on the more stable release channel. If you want that, but to also install unsigned addons, the scripts provided here are what you need.
+This repo exists for the narrower case where you intentionally want a standard release channel Firefox and still need to run your own unsigned local addons.
 
 # Prerequisites
 
@@ -55,58 +95,6 @@ If you have a working Bash installation, also run:
 ```bash
 bash -n patch-firefox.sh
 bash -n unpatch-firefox.sh
-```
-
-# Quick start
-
-On Windows, start from PowerShell or Command Prompt:
-
-```powershell
-.\patch-firefox.cmd --status
-.\patch-firefox.cmd --dry-run
-.\patch-firefox.cmd
-.\clear-startup-cache.cmd --status
-.\clear-startup-cache.cmd --dry-run
-.\clear-startup-cache.cmd
-```
-
-You can also double-click a `.cmd` launcher. If it fails when launched that way, it leaves the window open so the error message can be read. Command-line use exits normally.
-
-The Windows launchers ask for confirmation before modifying files and show the matching `--dry-run` command to try first. `--status`, `--dry-run`, and `--help` do not ask and do not change Firefox.
-
-Successful commands print the next practical step before exiting.
-
-If the Windows launcher cannot auto-detect the install directory, pass it explicitly:
-
-```powershell
-.\patch-firefox.cmd --status --mozilla-home "C:\Program Files\Mozilla Firefox"
-.\patch-firefox.cmd --dry-run --mozilla-home "C:\Program Files\Mozilla Firefox"
-.\patch-firefox.cmd --mozilla-home "C:\Program Files\Mozilla Firefox"
-```
-
-The Windows launchers accept normal Windows install paths such as `C:\Program Files\Mozilla Firefox`; the scripts normalize them when needed.
-
-For patch and restore commands, pass the Firefox install folder that contains `omni.ja`. For startup-cache cleanup, pass a Firefox profile directory or a `profiles.ini` file when auto-detection is not enough.
-
-Git for Windows includes Git Bash. The `.cmd` launchers use Git Bash and intentionally skip WSL bash.
-
-From Git Bash, macOS, or Linux, use the shell scripts directly:
-
-```bash
-./patch-firefox.sh --status
-./patch-firefox.sh --dry-run
-./patch-firefox.sh
-./clear-startup-cache.sh --status
-./clear-startup-cache.sh --dry-run
-./clear-startup-cache.sh
-```
-
-If the script cannot auto-detect the install directory, pass it explicitly:
-
-```bash
-./patch-firefox.sh --status --mozilla-home "/path/to/firefox"
-./patch-firefox.sh --dry-run --mozilla-home "/path/to/firefox"
-./patch-firefox.sh --mozilla-home "/path/to/firefox"
 ```
 
 # Patching
