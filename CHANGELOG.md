@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added local Windows launcher logging at `logs\enable-unsigned-firefox-addons.log` for command output and cancellations.
 - Replaced normal Windows `choice.exe` prompts with a quiet PowerShell single-key helper so invalid keys are ignored without triggering system beeps.
 - Added `findings.md` to record the Windows `choice.exe` beep finding and keep the debug-only repro separate from normal user launchers.
 - Changed Windows elevation to request UAC through PowerShell, explain that Git Bash is only the local script runner, and print elevated patch output back in the menu.

@@ -1,6 +1,6 @@
 *~
 *.bak
 *.log
+logs/
 tmp/
 temp/
-

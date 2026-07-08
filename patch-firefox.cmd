@@ -1,5 +1,7 @@
 @echo off
-setlocal
+setlocal EnableExtensions
+
+set "LOG_FILE=%~dp0logs\enable-unsigned-firefox-addons.log"
 
 set "PAUSE_ON_ERROR=1"
 if not "%~1"=="" set "PAUSE_ON_ERROR=0"
@@ -12,6 +14,7 @@ if defined FIREFOX_PATCH_ASSUME_YES set "CONFIRM_MODIFY=0"
 set "SCRIPT=%~dpn0.sh"
 if not exist "%SCRIPT%" (
     echo Couldn't find %SCRIPT%
+    call :log_line "%~nx0 could not find matching shell script"
     call :pause_on_error
     exit /b 1
 )
@@ -32,10 +35,29 @@ if errorlevel 1 (
 )
 
 :run_script
-"%BASH_EXE%" "%SCRIPT%" %*
+call :run_bash_script %*
 set "EXIT_CODE=%ERRORLEVEL%"
 if not "%EXIT_CODE%"=="0" call :pause_on_error
 exit /b %EXIT_CODE%
+
+:run_bash_script
+set "RUN_OUTPUT="
+for /f "delims=" %%T in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.IO.Path]::GetTempFileName()"') do set "RUN_OUTPUT=%%T"
+call :log_line "%~nx0 started"
+if not defined RUN_OUTPUT goto run_bash_without_log
+"%BASH_EXE%" "%SCRIPT%" %* > "%RUN_OUTPUT%" 2>&1
+set "RUN_EXIT=%ERRORLEVEL%"
+type "%RUN_OUTPUT%"
+call :log_file "%RUN_OUTPUT%"
+del "%RUN_OUTPUT%" >nul 2>nul
+call :log_line "%~nx0 finished with exit %RUN_EXIT%"
+exit /b %RUN_EXIT%
+
+:run_bash_without_log
+"%BASH_EXE%" "%SCRIPT%" %*
+set "RUN_EXIT=%ERRORLEVEL%"
+call :log_line "%~nx0 finished with exit %RUN_EXIT% without captured output"
+exit /b %RUN_EXIT%
 
 :classify_args
 if "%~1"=="" exit /b 0
@@ -63,14 +85,26 @@ echo.
 call :read_choice "YN" "Continue? [Y/N] "
 if errorlevel 255 (
     echo Cancelled. No files were changed.
+    call :log_line "%~nx0 cancelled before changing files"
     exit /b 2
 )
 if errorlevel 2 (
     echo Cancelled. No files were changed.
+    call :log_line "%~nx0 cancelled before changing files"
     exit /b 2
 )
 if errorlevel 1 exit /b 0
 exit /b 1
+
+:log_line
+if not exist "%~dp0scripts\append-log.ps1" exit /b 0
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\append-log.ps1" -LogFile "%LOG_FILE%" -Message "%~1" >nul 2>nul
+exit /b 0
+
+:log_file
+if not exist "%~dp0scripts\append-log.ps1" exit /b 0
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\append-log.ps1" -LogFile "%LOG_FILE%" -InputFile "%~1" >nul 2>nul
+exit /b 0
 
 :read_choice
 if not exist "%~dp0scripts\read-choice.ps1" (
@@ -115,6 +149,7 @@ for /f "delims=" %%P in ('where bash.exe 2^>nul') do (
 )
 
 :bash_not_found
+call :log_line "%~nx0 could not find Git Bash; no Firefox files were changed"
 echo Couldn't find Git Bash, the local script runner this tool needs on Windows.
 echo Install Git for Windows from https://git-scm.com/download/win
 echo Git for Windows includes Git Bash. Reopen this launcher after installing it.

@@ -2,6 +2,8 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 cd /d "%~dp0"
+set "LOG_FILE=%~dp0logs\enable-unsigned-firefox-addons.log"
+call :log_line "START-WINDOWS.cmd opened"
 
 :menu
 cls
@@ -25,12 +27,14 @@ echo C  Restore Firefox from rollback backup
 echo P  Pick a profile and set add-on setting
 echo.
 echo H  Open README
+echo L  Open local log
 echo Q  Quit
 echo.
-call :read_choice "123456789ABCPHQ" "Choose an option: "
+call :read_choice "123456789ABCPHLQ" "Choose an option: "
 
 if errorlevel 255 goto quit
-if errorlevel 15 goto quit
+if errorlevel 16 goto quit
+if errorlevel 15 goto open_log
 if errorlevel 14 goto readme
 if errorlevel 13 goto pref_pick
 if errorlevel 12 goto restore_real
@@ -177,6 +181,11 @@ goto menu
 start "" "%~dp0README.md"
 goto menu
 
+:open_log
+call :log_line "START-WINDOWS.cmd opened local log"
+start "" "%LOG_FILE%"
+goto menu
+
 :confirm_full_setup
 echo.
 echo This will patch the Firefox program files, ask which Firefox profile
@@ -264,6 +273,11 @@ if not exist "%~dp0scripts\read-choice.ps1" (
 )
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\read-choice.ps1" -Choices "%~1" -Prompt "%~2"
 exit /b %ERRORLEVEL%
+
+:log_line
+if not exist "%~dp0scripts\append-log.ps1" exit /b 0
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\append-log.ps1" -LogFile "%LOG_FILE%" -Message "%~1" >nul 2>nul
+exit /b 0
 
 :assert_patch_applied
 set "PATCH_STATUS_OUTPUT="

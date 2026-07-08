@@ -50,6 +50,8 @@ Windows needs Git Bash from Git for Windows to run these scripts. If Git for Win
 
 The Windows menu uses single-key prompts. You do not need to press Enter for menu choices, and unexpected keys are ignored instead of being treated as commands.
 
+The Windows launchers append a local log at `logs\enable-unsigned-firefox-addons.log` inside the extracted folder. The log stays on your machine and can be deleted. It may include command output, local Firefox install paths, and Firefox profile paths.
+
 ## What gets changed
 
 - Firefox program files: the patch changes Firefox `omni.ja` and keeps `omni-orig.ja` as the rollback backup.
@@ -136,6 +138,7 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `CHANGELOG.md`: high-level summary of user-visible script and repository changes.
 - `findings.md`: short notes about verified local behavior that affected the user-facing scripts.
 - `MAINTENANCE.md`: short checklist for keeping script changes small, verified, and user-readable.
+- `scripts/append-log.ps1`: local log writer used by the Windows launchers.
 - `scripts/read-choice.ps1`: quiet single-key input helper used by the Windows launchers.
 - `scripts/debug-choice-beep.cmd`: debug-only repro helper for the Windows `choice.exe` system-beep behavior.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
