@@ -95,7 +95,7 @@ foreach ($Launcher in @(
     @{ Name = 'unpatch-firefox.cmd'; Text = $UnpatchLauncher },
     @{ Name = 'clear-startup-cache.cmd'; Text = $StartupCacheLauncher }
 )) {
-    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", '"%BASH_EXE%" "%SCRIPT%" %*')) {
+    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', 'CONFIRM_MODIFY', ':classify_args', ':confirm_modify', 'choice /C YN /N', 'Cancelled. No files were changed.', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", '"%BASH_EXE%" "%SCRIPT%" %*')) {
         if (-not $Launcher.Text.Contains($Pattern)) {
             throw "$($Launcher.Name) is missing expected launcher behavior: $Pattern"
         }
@@ -124,14 +124,14 @@ foreach ($Pattern in @('package-ecosystem: "github-actions"', 'interval: "monthl
 }
 
 $SupportPolicy = Get-Content -LiteralPath (Join-Path $RepoRoot 'SUPPORT.md') -Raw
-foreach ($Pattern in @('provided as-is', 'no support commitment', 'patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'patch-firefox.sh --status', 'patch-firefox.sh --dry-run', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --dry-run')) {
+foreach ($Pattern in @('provided as-is', 'no support commitment', 'asks for confirmation', 'modifying files', 'patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'patch-firefox.sh --status', 'patch-firefox.sh --dry-run', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --dry-run')) {
     if (-not $SupportPolicy.Contains($Pattern)) {
         throw "SUPPORT.md is missing expected policy text: $Pattern"
     }
 }
 
 $Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
-foreach ($Pattern in @('patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --dry-run', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
+foreach ($Pattern in @('patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --dry-run', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
     if (-not $Readme.Contains($Pattern)) {
         throw "README.md is missing expected Windows launcher guidance: $Pattern"
     }
@@ -190,6 +190,11 @@ if ($null -eq $UsableBash) {
         & cmd.exe /d /c "`"$LauncherPath`" --help"
         if ($LASTEXITCODE -ne 0) {
             throw "Windows launcher help check failed for $Launcher."
+        }
+
+        & cmd.exe /d /c "echo N| `"$LauncherPath`""
+        if ($LASTEXITCODE -ne 0) {
+            throw "Windows launcher confirmation cancel check failed for $Launcher."
         }
     }
 

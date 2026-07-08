@@ -24,9 +24,9 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 
 # Repository layout
 
-- `patch-firefox.cmd`: Windows launcher that finds Git Bash and runs `patch-firefox.sh`.
-- `unpatch-firefox.cmd`: Windows launcher that finds Git Bash and runs `unpatch-firefox.sh`.
-- `clear-startup-cache.cmd`: Windows launcher that finds Git Bash and runs `clear-startup-cache.sh`.
+- `patch-firefox.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `patch-firefox.sh`.
+- `unpatch-firefox.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `unpatch-firefox.sh`.
+- `clear-startup-cache.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `clear-startup-cache.sh`.
 - `patch-firefox.sh`: inspects status, dry-runs safely, edits Firefox `AppConstants`, verifies the replacement archive, then backs up `omni.ja` to `omni-orig.ja` and swaps in the patched archive.
 - `unpatch-firefox.sh`: inspects status, dry-runs safely, restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
 - `clear-startup-cache.sh`: clears Firefox profile `startupCache` directories listed in `profiles.ini`, with dry-run support.
@@ -64,6 +64,8 @@ On Windows, start from PowerShell or Command Prompt:
 
 You can also double-click a `.cmd` launcher. If it fails when launched that way, it leaves the window open so the error message can be read. Command-line use exits normally.
 
+The Windows launchers ask for confirmation before modifying files. `--status`, `--dry-run`, and `--help` do not ask and do not change Firefox.
+
 If the Windows launcher cannot auto-detect the install directory, pass it explicitly:
 
 ```powershell
@@ -100,9 +102,9 @@ Follow the following steps to patch Firefox to disable addon signing.
 1. Ensure that you have exited from Firefox. The scripts refuse to modify `omni.ja` if Firefox appears to be running from `MOZILLA_HOME`.
 1. Run `patch-firefox.cmd --status --mozilla-home /path/to/firefox` on Windows, or `patch-firefox.sh --status --mozilla-home /path/to/firefox` from Bash, to inspect the archive, current signing constant, rollback backup, and Firefox process state without modifying anything.
 1. Run the same command with `--dry-run` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox. Dry run does not write to `MOZILLA_HOME`, so it should work even before you have admin/write access for the real patch.
-1. Run the patch command without `--status` or `--dry-run`. On Windows, the script requests UAC elevation automatically if the Firefox directory is protected. If it works, the last line should be Done.
+1. Run the patch command without `--status` or `--dry-run`. On Windows, the launcher asks for confirmation first, then requests UAC elevation automatically if the Firefox directory is protected. If it works, the last line should be Done.
 1. Run `clear-startup-cache.cmd --dry-run` on Windows, or `clear-startup-cache.sh --dry-run` from Bash, to preview Firefox profile `startupCache` directories that will be cleared.
-1. Run `clear-startup-cache.cmd` on Windows, or `clear-startup-cache.sh` from Bash, to remove those `startupCache` directories. The helper uses Firefox `profiles.ini`; for an unusual profile location, pass `--profile /path/to/profile`. Windows paths such as `C:\Users\Name\AppData\Roaming\Mozilla\Firefox\Profiles\xxxxxxxx.default-release` are accepted by the `.cmd` launcher.
+1. Run `clear-startup-cache.cmd` on Windows, or `clear-startup-cache.sh` from Bash, to remove those `startupCache` directories. On Windows, the launcher asks for confirmation before deleting cache folders. The helper uses Firefox `profiles.ini`; for an unusual profile location, pass `--profile /path/to/profile`. Windows paths such as `C:\Users\Name\AppData\Roaming\Mozilla\Firefox\Profiles\xxxxxxxx.default-release` are accepted by the `.cmd` launcher.
 1. Start Firefox.
 1. Navigate to `about:config`.
 1. While on `about:config`, go to the Developer tools (F12 by default), and switch to the Console tab. Type in `ChromeUtils.importESModule("resource://gre/modules/AppConstants.sys.mjs").AppConstants.MOZ_REQUIRE_SIGNING`. If you see `false`, the patching has worked. If you see true, something has not worked. Older Firefox builds may require `ChromeUtils.import("resource://gre/modules/AppConstants.jsm").AppConstants.MOZ_REQUIRE_SIGNING` instead. If it did not work, ensure you have run the `patch-firefox.sh` script with the correct MOZILLA_HOME, and that you have successfully deleted the startupCache before starting Firefox, and try again.
@@ -117,7 +119,7 @@ You should continue to upgrade Firefox whenever it prompts you to upgrade it to 
 1. Exit from Firefox.
 1. Run `unpatch-firefox.cmd --status --mozilla-home /path/to/firefox` on Windows, or `unpatch-firefox.sh --status --mozilla-home /path/to/firefox` from Bash, to confirm that the install is currently patched and has a rollback backup.
 1. Run the same command with `--dry-run` to confirm that the backup can be staged for restore.
-1. Run the restore command without `--status` or `--dry-run`. On Windows, the script requests UAC elevation automatically if the Firefox directory is protected.
+1. Run the restore command without `--status` or `--dry-run`. On Windows, the launcher asks for confirmation first, then requests UAC elevation automatically if the Firefox directory is protected.
 1. Start Firefox using the `-ProfileManager` option, and start it using a different profile - create a new one if necessary (don't start it with your normal profile as this will disable all your unsigned addons, and you will need to clear caches again).
 1. Apply the update.
 1. Run `patch-firefox.sh`

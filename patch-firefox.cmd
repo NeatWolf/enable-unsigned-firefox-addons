@@ -5,6 +5,9 @@ set "PAUSE_ON_ERROR=1"
 if not "%~1"=="" set "PAUSE_ON_ERROR=0"
 if defined FIREFOX_PATCH_NO_PAUSE set "PAUSE_ON_ERROR=0"
 
+set "CONFIRM_MODIFY=1"
+call :classify_args %*
+
 set "SCRIPT=%~dpn0.sh"
 if not exist "%SCRIPT%" (
     echo Couldn't find %SCRIPT%
@@ -19,10 +22,41 @@ if not "%EXIT_CODE%"=="0" (
     exit /b %EXIT_CODE%
 )
 
+if not "%CONFIRM_MODIFY%"=="1" goto run_script
+call :confirm_modify
+if errorlevel 2 exit /b 0
+if errorlevel 1 (
+    call :pause_on_error
+    exit /b 1
+)
+
+:run_script
 "%BASH_EXE%" "%SCRIPT%" %*
 set "EXIT_CODE=%ERRORLEVEL%"
 if not "%EXIT_CODE%"=="0" call :pause_on_error
 exit /b %EXIT_CODE%
+
+:classify_args
+if "%~1"=="" exit /b 0
+if /I "%~1"=="--dry-run" set "CONFIRM_MODIFY=0"
+if /I "%~1"=="--status" set "CONFIRM_MODIFY=0"
+if /I "%~1"=="-h" set "CONFIRM_MODIFY=0"
+if /I "%~1"=="--help" set "CONFIRM_MODIFY=0"
+shift
+goto classify_args
+
+:confirm_modify
+rem Windows users often arrive here by double-clicking the launcher.
+rem Ask before the launcher starts a real patch or triggers a UAC prompt.
+echo.
+echo This will patch Firefox by replacing omni.ja.
+echo Firefox must be closed. Run --dry-run first to test without changing files.
+choice /C YN /N /M "Continue? [Y/N] "
+if errorlevel 2 (
+    echo Cancelled. No files were changed.
+    exit /b 2
+)
+exit /b 0
 
 :pause_on_error
 rem A double-clicked .cmd starts with no arguments and closes on failure.
