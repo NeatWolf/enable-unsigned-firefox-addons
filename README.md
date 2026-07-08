@@ -136,7 +136,7 @@ You should continue to upgrade Firefox whenever it prompts you to upgrade it to 
 1. Exit from Firefox.
 1. Run `unpatch-firefox.cmd --status --mozilla-home /path/to/firefox` on Windows, or `unpatch-firefox.sh --status --mozilla-home /path/to/firefox` from Bash, to confirm that the install is currently patched and has a rollback backup. The status output also gives the suggested next step without modifying anything.
 1. Run the same command with `--dry-run` to confirm that the backup can be staged for restore. If it succeeds, it tells you to run the same command without `--dry-run`.
-1. Run the restore command without `--status` or `--dry-run`. On Windows, the launcher asks for confirmation first, then requests UAC elevation automatically if the Firefox directory is protected.
+1. Run the restore command without `--status` or `--dry-run`. On Windows, the launcher asks for confirmation first, then requests UAC elevation automatically if the Firefox directory is protected. A successful restore removes `omni-orig.ja`.
 1. Start Firefox using the `-ProfileManager` option, and start it using a different profile - create a new one if necessary (don't start it with your normal profile as this will disable all your unsigned addons, and you will need to clear caches again).
 1. Apply the update.
 1. Run `patch-firefox.sh`

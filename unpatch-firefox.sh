@@ -560,4 +560,5 @@ RESTORE_FILE=""
 rm "$ORIGINAL_OMNI_FILE"
 
 echo Done
+echo "Removed rollback backup: $ORIGINAL_OMNI_FILE"
 echo "next step: update Firefox, then patch again if unsigned addons are still needed."

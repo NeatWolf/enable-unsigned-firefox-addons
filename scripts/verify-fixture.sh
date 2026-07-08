@@ -284,6 +284,7 @@ run_roundtrip_fixture() {
 
     unpatch_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 MOZILLA_HOME="$fixture_home" "$REPO_ROOT/unpatch-firefox.sh")
     assert_output_contains "$name-unpatch-output" "$unpatch_output" "Done"
+    assert_output_contains "$name-unpatch-output" "$unpatch_output" "Removed rollback backup: $fixture_home/omni-orig.ja"
     assert_output_contains "$name-unpatch-output" "$unpatch_output" "next step: update Firefox, then patch again if unsigned addons are still needed."
     if [[ -f "$fixture_home/omni-orig.ja" ]]; then
         echo "$name: unpatch did not remove omni-orig.ja"
