@@ -413,6 +413,12 @@ run_startup_cache_fixture() {
     local direct_profile="$TEMPDIR/$name/direct.default"
     local dry_run_output
     local clean_output
+    local windows_ini
+    local windows_profile
+    local windows_direct_profile
+    local windows_ini_arg
+    local windows_profile_arg
+    local windows_direct_profile_arg
 
     mkdir -p \
         "$relative_profile/startupCache" \
@@ -465,6 +471,41 @@ PROFILES_INI
     if [[ -d "$direct_profile/startupCache" ]]; then
         echo "$name: explicit profile startupCache was not removed"
         exit 1
+    fi
+
+    if command -v cygpath > /dev/null 2>&1; then
+        windows_ini="$TEMPDIR/$name/windows-profiles.ini"
+        windows_profile="$TEMPDIR/$name/windows-absolute.default"
+        windows_direct_profile="$TEMPDIR/$name/windows-direct.default"
+        mkdir -p "$windows_profile/startupCache" "$windows_direct_profile/startupCache"
+        echo "cache" > "$windows_profile/startupCache/startupCache.8.little"
+        echo "cache" > "$windows_direct_profile/startupCache/startupCache.8.little"
+
+        windows_ini_arg=$(cygpath -w "$windows_ini")
+        windows_profile_arg=$(cygpath -w "$windows_profile")
+        windows_direct_profile_arg=$(cygpath -w "$windows_direct_profile")
+
+        cat > "$windows_ini" <<PROFILES_INI
+[Profile0]
+Name=windows-absolute
+IsRelative=0
+Path=$windows_profile_arg
+PROFILES_INI
+
+        dry_run_output=$("$REPO_ROOT/clear-startup-cache.sh" --dry-run --profiles-ini "$windows_ini_arg")
+        assert_output_contains "$name-windows-dry-run" "$dry_run_output" "Would remove $windows_profile/startupCache"
+
+        "$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$windows_ini_arg" > /dev/null
+        if [[ -d "$windows_profile/startupCache" ]]; then
+            echo "$name: Windows profiles.ini path startupCache was not removed"
+            exit 1
+        fi
+
+        "$REPO_ROOT/clear-startup-cache.sh" --profile "$windows_direct_profile_arg" > /dev/null
+        if [[ -d "$windows_direct_profile/startupCache" ]]; then
+            echo "$name: Windows --profile startupCache was not removed"
+            exit 1
+        fi
     fi
 }
 

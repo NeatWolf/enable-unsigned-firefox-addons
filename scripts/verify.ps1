@@ -84,7 +84,7 @@ foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', 
     }
 }
 
-foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--profile', '--profiles-ini', 'profiles.ini', 'read_profiles_ini', 'startup_cache_dirs', 'remove_startup_cache', 'No Firefox profiles found', 'No startupCache directories found', 'Dry run OK')) {
+foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--profile', '--profiles-ini', 'profiles.ini', 'normalize_input_path', 'read_profiles_ini', 'startup_cache_dirs', 'remove_startup_cache', 'No Firefox profiles found', 'No startupCache directories found', 'Dry run OK')) {
     if (-not $StartupCacheScript.Contains($Pattern)) {
         throw "clear-startup-cache.sh is missing expected cache cleanup behavior: $Pattern"
     }
@@ -103,7 +103,7 @@ foreach ($Launcher in @(
 }
 
 $FixtureScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\verify-fixture.sh') -Raw
-foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'modern-dry-run-readonly-home', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'startup-cache-profiles-ini', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
+foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'modern-dry-run-readonly-home', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'startup-cache-profiles-ini', 'windows-absolute', 'Windows --profile', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
     if (-not $FixtureScript.Contains($Pattern)) {
         throw "scripts\verify-fixture.sh is missing expected test coverage: $Pattern"
     }
@@ -131,7 +131,7 @@ foreach ($Pattern in @('provided as-is', 'no support commitment', 'patch-firefox
 }
 
 $Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
-foreach ($Pattern in @('patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --dry-run', 'C:\Program Files\Mozilla Firefox')) {
+foreach ($Pattern in @('patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --dry-run', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as')) {
     if (-not $Readme.Contains($Pattern)) {
         throw "README.md is missing expected Windows launcher guidance: $Pattern"
     }

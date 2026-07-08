@@ -97,6 +97,20 @@ path_from_windows_env() {
     fi
 }
 
+normalize_input_path() {
+    local value=$1
+
+    if [[ -z $value ]]; then
+        return
+    fi
+
+    if command -v cygpath > /dev/null 2>&1 && [[ $value =~ ^[A-Za-z]:[\\/] || $value =~ ^\\\\ ]]; then
+        cygpath -u "$value"
+    else
+        printf '%s\n' "$value"
+    fi
+}
+
 candidate_profiles_ini_files() {
     local appdata_home
 
@@ -126,6 +140,7 @@ emit_profiles_ini_entry() {
     local ini_root=$1
     local profile_path=$2
     local is_relative=$3
+    local normalized_profile_path
 
     if [[ -z $profile_path ]]; then
         return
@@ -133,7 +148,8 @@ emit_profiles_ini_entry() {
 
     case "$is_relative" in
         0)
-            add_profile_dir "$profile_path"
+            normalized_profile_path=$(normalize_input_path "$profile_path")
+            add_profile_dir "$normalized_profile_path"
             ;;
         *)
             add_profile_dir "$ini_root/$profile_path"
@@ -174,25 +190,29 @@ read_profiles_ini() {
 # scanning arbitrary directories for folders named startupCache.
 resolve_profile_dirs() {
     local ini_file
+    local normalized_profile_arg
+    local normalized_profiles_ini_arg
 
     PROFILE_DIRS=()
     SEEN_PROFILE_DIRS="|"
 
     if [[ -n $PROFILE_ARG ]]; then
-        if [[ ! -d $PROFILE_ARG ]]; then
+        normalized_profile_arg=$(normalize_input_path "$PROFILE_ARG")
+        if [[ ! -d $normalized_profile_arg ]]; then
             echo "Couldn't find profile directory $PROFILE_ARG"
             exit 1
         fi
-        add_profile_dir "$PROFILE_ARG"
+        add_profile_dir "$normalized_profile_arg"
         return
     fi
 
     if [[ -n $PROFILES_INI_ARG ]]; then
-        if [[ ! -f $PROFILES_INI_ARG ]]; then
+        normalized_profiles_ini_arg=$(normalize_input_path "$PROFILES_INI_ARG")
+        if [[ ! -f $normalized_profiles_ini_arg ]]; then
             echo "Couldn't find profiles.ini $PROFILES_INI_ARG"
             exit 1
         fi
-        read_profiles_ini "$PROFILES_INI_ARG"
+        read_profiles_ini "$normalized_profiles_ini_arg"
         return
     fi
 
