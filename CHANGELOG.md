@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Switched normal-user download guidance from source ZIPs to release ZIPs.
+- Added clearer download, folder placement, and platform file guidance for normal users.
 - Replaced the MIT license with a source-available showcase license and removed contribution-oriented files.
 - Added static README badges for source availability, no support, dry-run-first use, and no AI training.
 - Parked GitHub Actions and the related Dependabot config while hosted Actions are unavailable.

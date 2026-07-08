@@ -13,9 +13,29 @@ Patch a local Firefox Release install so unsigned add-ons can be loaded without 
 
 This is source-available showcase software, not an open-source project. The license allows viewing and personal local testing of unmodified copies only. It forbids redistribution, modified versions, published forks, and AI training use.
 
+## Download
+
+Download the latest release ZIP. Do not download files one by one, and do not use GitHub's `Code` > `Download ZIP` source archive unless you specifically want the full source tree.
+
+1. Open [Releases](https://github.com/NeatWolf/enable-unsigned-firefox-addons/releases/latest).
+1. Download `enable-unsigned-firefox-addons.zip` from the release assets.
+1. Extract it anywhere convenient, such as `Downloads` or `Desktop`.
+1. Open the extracted folder and run the launcher from there.
+
+Do not copy individual files around. Do not put the scripts inside the Firefox install folder.
+
+The release ZIP contains only the files normal users need:
+
+| System | Run these files |
+| --- | --- |
+| Windows | `patch-firefox.cmd`, `unpatch-firefox.cmd`, `clear-startup-cache.cmd` |
+| Git Bash, macOS, Linux | `patch-firefox.sh`, `unpatch-firefox.sh`, `clear-startup-cache.sh` |
+
+The source repository contains extra documentation, local verification, and repository metadata. Normal users do not need those files.
+
 ## Quick start
 
-Windows PowerShell or Command Prompt:
+Open PowerShell or Command Prompt in the extracted folder:
 
 ```powershell
 .\patch-firefox.cmd --status
@@ -28,15 +48,15 @@ Windows PowerShell or Command Prompt:
 
 You can also double-click a `.cmd` launcher. If it fails when launched that way, it leaves the window open so the error message can be read. Command-line use exits normally.
 
-Git Bash, macOS, or Linux:
+From Git Bash, macOS, or Linux, run these from the extracted folder:
 
 ```bash
-./patch-firefox.sh --status
-./patch-firefox.sh --dry-run
-./patch-firefox.sh
-./clear-startup-cache.sh --status
-./clear-startup-cache.sh --dry-run
-./clear-startup-cache.sh
+bash ./patch-firefox.sh --status
+bash ./patch-firefox.sh --dry-run
+bash ./patch-firefox.sh
+bash ./clear-startup-cache.sh --status
+bash ./clear-startup-cache.sh --dry-run
+bash ./clear-startup-cache.sh
 ```
 
 Run `--status` first, then `--dry-run`. The Windows launchers ask for confirmation before modifying files and show the matching `--dry-run` command to try first. `--status`, `--dry-run`, and `--help` do not ask and do not change Firefox. Successful commands print the next practical step before exiting.
