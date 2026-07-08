@@ -26,8 +26,10 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 
 - `patch-firefox.cmd`: Windows launcher that finds Git Bash and runs `patch-firefox.sh`.
 - `unpatch-firefox.cmd`: Windows launcher that finds Git Bash and runs `unpatch-firefox.sh`.
+- `clear-startup-cache.cmd`: Windows launcher that finds Git Bash and runs `clear-startup-cache.sh`.
 - `patch-firefox.sh`: inspects status, dry-runs safely, edits Firefox `AppConstants`, verifies the replacement archive, then backs up `omni.ja` to `omni-orig.ja` and swaps in the patched archive.
 - `unpatch-firefox.sh`: inspects status, dry-runs safely, restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
+- `clear-startup-cache.sh`: clears Firefox profile `startupCache` directories listed in `profiles.ini`, with dry-run support.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
 - `AGENTS.md`: rules for future automated work in this repository.
@@ -56,6 +58,8 @@ On Windows, start from PowerShell or Command Prompt:
 .\patch-firefox.cmd --status
 .\patch-firefox.cmd --dry-run
 .\patch-firefox.cmd
+.\clear-startup-cache.cmd --dry-run
+.\clear-startup-cache.cmd
 ```
 
 If the Windows launcher cannot auto-detect the install directory, pass it explicitly:
@@ -66,12 +70,14 @@ If the Windows launcher cannot auto-detect the install directory, pass it explic
 .\patch-firefox.cmd --mozilla-home "C:\Program Files\Mozilla Firefox"
 ```
 
-From Git Bash, macOS, or Linux, use the shell script directly:
+From Git Bash, macOS, or Linux, use the shell scripts directly:
 
 ```bash
 ./patch-firefox.sh --status
 ./patch-firefox.sh --dry-run
 ./patch-firefox.sh
+./clear-startup-cache.sh --dry-run
+./clear-startup-cache.sh
 ```
 
 If the script cannot auto-detect the install directory, pass it explicitly:
@@ -93,8 +99,8 @@ Follow the following steps to patch Firefox to disable addon signing.
 1. Run `patch-firefox.cmd --status --mozilla-home /path/to/firefox` on Windows, or `patch-firefox.sh --status --mozilla-home /path/to/firefox` from Bash, to inspect the archive, current signing constant, rollback backup, and Firefox process state without modifying anything.
 1. Run the same command with `--dry-run` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox. Dry run does not write to `MOZILLA_HOME`, so it should work even before you have admin/write access for the real patch.
 1. Run the patch command without `--status` or `--dry-run`. On Windows, the script requests UAC elevation automatically if the Firefox directory is protected. If it works, the last line should be Done.
-1. If you have an existing Firefox profile, you will also need to find your profile directory. The location depends on your configuration, but on Linux is usually a subdirectory of `~/.mozilla/firefox/`, called `xxxxxxxx.default`, where xxxxxxxx is replaced with a random string of characters.
-1. In that profile directory (if you have one already), you will need to delete the subdirectory called `startupCache`.
+1. Run `clear-startup-cache.cmd --dry-run` on Windows, or `clear-startup-cache.sh --dry-run` from Bash, to preview Firefox profile `startupCache` directories that will be cleared.
+1. Run `clear-startup-cache.cmd` on Windows, or `clear-startup-cache.sh` from Bash, to remove those `startupCache` directories. The helper uses Firefox `profiles.ini`; for an unusual profile location, pass `--profile /path/to/profile`.
 1. Start Firefox.
 1. Navigate to `about:config`.
 1. While on `about:config`, go to the Developer tools (F12 by default), and switch to the Console tab. Type in `ChromeUtils.importESModule("resource://gre/modules/AppConstants.sys.mjs").AppConstants.MOZ_REQUIRE_SIGNING`. If you see `false`, the patching has worked. If you see true, something has not worked. Older Firefox builds may require `ChromeUtils.import("resource://gre/modules/AppConstants.jsm").AppConstants.MOZ_REQUIRE_SIGNING` instead. If it did not work, ensure you have run the `patch-firefox.sh` script with the correct MOZILLA_HOME, and that you have successfully deleted the startupCache before starting Firefox, and try again.

@@ -26,6 +26,7 @@ jobs:
         run: |
           bash -n patch-firefox.sh
           bash -n unpatch-firefox.sh
+          bash -n clear-startup-cache.sh
           bash -n scripts/verify-fixture.sh
 
       - name: Run fixture verifier

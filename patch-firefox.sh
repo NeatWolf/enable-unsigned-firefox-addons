@@ -329,6 +329,26 @@ assert_firefox_not_running() {
     fi
 }
 
+extract_omni() {
+    local archive=$1
+    local target_dir=$2
+    local log_file=$3
+
+    # Firefox omni.ja often emits harmless unzip warnings; callers validate
+    # AppConstants after extraction and print this log only on real failures.
+    : > "$log_file"
+    unzip -q -d "$target_dir" "$archive" > /dev/null 2> "$log_file" || true
+}
+
+print_extract_details() {
+    local log_file=$1
+
+    if [[ -s $log_file ]]; then
+        echo "Extraction details:"
+        sed -e 's/^/  /' "$log_file"
+    fi
+}
+
 patch_require_signing() {
     local app_constants_file=$1
     local signline
@@ -444,21 +464,26 @@ verify_new_archive() {
     local app_constants_file
 
     VERIFY_TEMPDIR=$(mktemp -d)
-    unzip -q -d "$VERIFY_TEMPDIR" "$NEW_OMNI_FILE" || true
+    VERIFY_UNZIP_LOG=$(mktemp)
+    extract_omni "$NEW_OMNI_FILE" "$VERIFY_TEMPDIR" "$VERIFY_UNZIP_LOG"
 
     app_constants_file=$(find_app_constants "$VERIFY_TEMPDIR" || true)
     if [[ -z $app_constants_file ]]; then
         echo "Replacement archive is missing AppConstants"
+        print_extract_details "$VERIFY_UNZIP_LOG"
         exit 1
     fi
 
     if ! app_constants_is_false "$app_constants_file"; then
         echo "Replacement archive did not set MOZ_REQUIRE_SIGNING to false"
+        print_extract_details "$VERIFY_UNZIP_LOG"
         exit 1
     fi
 
     rm -rf "$VERIFY_TEMPDIR"
     VERIFY_TEMPDIR=""
+    rm -f "$VERIFY_UNZIP_LOG"
+    VERIFY_UNZIP_LOG=""
 }
 
 print_status() {
@@ -482,6 +507,7 @@ print_status() {
     app_constants_file=$(find_app_constants "$TEMPDIR" || true)
     if [[ -z $app_constants_file ]]; then
         echo "MOZ_REQUIRE_SIGNING: unknown (AppConstants not found)"
+        print_extract_details "$UNZIP_LOG"
         exit 1
     fi
 
@@ -532,6 +558,8 @@ ORIGINAL_OMNI_FILE="$MOZILLA_HOME/omni-orig.ja"
 NEW_OMNI_FILE=""
 TEMPDIR=""
 VERIFY_TEMPDIR=""
+UNZIP_LOG=""
+VERIFY_UNZIP_LOG=""
 
 cleanup() {
     if [[ -n ${TEMPDIR:-} ]]; then
@@ -542,6 +570,12 @@ cleanup() {
     fi
     if [[ -n ${NEW_OMNI_FILE:-} ]]; then
         rm -f "$NEW_OMNI_FILE"
+    fi
+    if [[ -n ${UNZIP_LOG:-} ]]; then
+        rm -f "$UNZIP_LOG"
+    fi
+    if [[ -n ${VERIFY_UNZIP_LOG:-} ]]; then
+        rm -f "$VERIFY_UNZIP_LOG"
     fi
 }
 trap cleanup EXIT
@@ -557,7 +591,8 @@ if [[ ! -d $TEMPDIR ]]; then
     exit 1
 fi
 
-unzip -q -d "$TEMPDIR" "$OMNI_FILE" || true
+UNZIP_LOG=$(mktemp)
+extract_omni "$OMNI_FILE" "$TEMPDIR" "$UNZIP_LOG"
 
 if [[ $STATUS_MODE -eq 1 ]]; then
     print_status
@@ -585,7 +620,8 @@ fi
 
 APP_CONSTANTS_FILE=$(find_app_constants "$TEMPDIR" || true)
 if [[ -z $APP_CONSTANTS_FILE ]]; then
-    echo "Unzip was unsuccessful"
+    echo "Couldn't extract AppConstants from $OMNI_FILE"
+    print_extract_details "$UNZIP_LOG"
     exit 1
 fi
 

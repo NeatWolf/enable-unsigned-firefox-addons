@@ -324,6 +324,26 @@ assert_firefox_not_running() {
     fi
 }
 
+extract_omni() {
+    local archive=$1
+    local target_dir=$2
+    local log_file=$3
+
+    # Firefox omni.ja often emits harmless unzip warnings; status validates
+    # AppConstants after extraction and prints this log only on real failures.
+    : > "$log_file"
+    unzip -q -d "$target_dir" "$archive" > /dev/null 2> "$log_file" || true
+}
+
+print_extract_details() {
+    local log_file=$1
+
+    if [[ -s $log_file ]]; then
+        echo "Extraction details:"
+        sed -e 's/^/  /' "$log_file"
+    fi
+}
+
 print_status() {
     local app_constants_file
     local require_signing
@@ -345,6 +365,7 @@ print_status() {
     app_constants_file=$(find_app_constants "$TEMPDIR" || true)
     if [[ -z $app_constants_file ]]; then
         echo "MOZ_REQUIRE_SIGNING: unknown (AppConstants not found)"
+        print_extract_details "$UNZIP_LOG"
         exit 1
     fi
 
@@ -386,6 +407,7 @@ OMNI_FILE="$MOZILLA_HOME/omni.ja"
 ORIGINAL_OMNI_FILE="$MOZILLA_HOME/omni-orig.ja"
 RESTORE_FILE=""
 TEMPDIR=""
+UNZIP_LOG=""
 
 cleanup() {
     if [[ -n ${TEMPDIR:-} ]]; then
@@ -393,6 +415,9 @@ cleanup() {
     fi
     if [[ -n ${RESTORE_FILE:-} ]]; then
         rm -f "$RESTORE_FILE"
+    fi
+    if [[ -n ${UNZIP_LOG:-} ]]; then
+        rm -f "$UNZIP_LOG"
     fi
 }
 trap cleanup EXIT
@@ -409,7 +434,8 @@ if [[ $STATUS_MODE -eq 1 ]]; then
         exit 1
     fi
 
-    unzip -q -d "$TEMPDIR" "$OMNI_FILE" || true
+    UNZIP_LOG=$(mktemp)
+    extract_omni "$OMNI_FILE" "$TEMPDIR" "$UNZIP_LOG"
     print_status
     exit 0
 fi

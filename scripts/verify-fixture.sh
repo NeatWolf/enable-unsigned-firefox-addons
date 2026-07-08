@@ -404,6 +404,70 @@ POWERSHELL
     assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
 }
 
+run_startup_cache_fixture() {
+    local name="startup-cache-profiles-ini"
+    local firefox_data="$TEMPDIR/$name/firefox-data"
+    local relative_profile="$firefox_data/Profiles/abc.default"
+    local absolute_profile="$TEMPDIR/$name/absolute.default"
+    local stray_profile="$firefox_data/Profiles/not-listed.default"
+    local direct_profile="$TEMPDIR/$name/direct.default"
+    local dry_run_output
+    local clean_output
+
+    mkdir -p \
+        "$relative_profile/startupCache" \
+        "$absolute_profile/startupCache" \
+        "$stray_profile/startupCache" \
+        "$direct_profile/startupCache"
+
+    echo "cache" > "$relative_profile/startupCache/startupCache.8.little"
+    echo "cache" > "$absolute_profile/startupCache/startupCache.8.little"
+    echo "cache" > "$stray_profile/startupCache/startupCache.8.little"
+    echo "cache" > "$direct_profile/startupCache/startupCache.8.little"
+
+    cat > "$firefox_data/profiles.ini" <<PROFILES_INI
+[Profile0]
+Name=default
+IsRelative=1
+Path=Profiles/abc.default
+
+[Profile1]
+Name=absolute
+IsRelative=0
+Path=$absolute_profile
+PROFILES_INI
+
+    dry_run_output=$("$REPO_ROOT/clear-startup-cache.sh" --dry-run --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $relative_profile/startupCache"
+    assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $absolute_profile/startupCache"
+    assert_output_contains "$name-dry-run" "$dry_run_output" "Dry run OK"
+
+    if [[ ! -d "$relative_profile/startupCache" || ! -d "$absolute_profile/startupCache" ]]; then
+        echo "$name: dry-run removed startupCache"
+        exit 1
+    fi
+
+    "$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$firefox_data/profiles.ini" > /dev/null
+    if [[ -d "$relative_profile/startupCache" || -d "$absolute_profile/startupCache" ]]; then
+        echo "$name: listed startupCache directory was not removed"
+        exit 1
+    fi
+
+    if [[ ! -d "$stray_profile/startupCache" ]]; then
+        echo "$name: unlisted profile startupCache was removed"
+        exit 1
+    fi
+
+    clean_output=$("$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-clean" "$clean_output" "No startupCache directories found."
+
+    "$REPO_ROOT/clear-startup-cache.sh" --profile "$direct_profile" > /dev/null
+    if [[ -d "$direct_profile/startupCache" ]]; then
+        echo "$name: explicit profile startupCache was not removed"
+        exit 1
+    fi
+}
+
 run_roundtrip_fixture "modern-sysm" "modern" "modules/AppConstants.sys.mjs"
 run_roundtrip_fixture "legacy-jsm" "legacy" "modules/AppConstants.jsm"
 run_status_fixture
@@ -414,5 +478,6 @@ run_mozilla_home_argument_fixture
 run_patch_failure_fixture "already-false" "modern-false" "modules/AppConstants.sys.mjs"
 run_patch_failure_fixture "missing-appconstants" "missing" "modules/AppConstants.sys.mjs"
 run_process_guard_fixture
+run_startup_cache_fixture
 
 echo "Fixture verification completed."
