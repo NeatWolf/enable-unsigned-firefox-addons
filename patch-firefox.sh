@@ -651,7 +651,8 @@ if [[ $STATUS_MODE -eq 0 ]]; then
 fi
 
 if [[ ! -d $MOZILLA_HOME ]]; then
-    echo "Couldn't find directory $MOZILLA_HOME"
+    echo "Couldn't find Firefox install directory: $MOZILLA_HOME"
+    echo "Expected a directory containing omni.ja. Use --mozilla-home to pass the Firefox install folder."
     exit 1
 fi
 
@@ -683,7 +684,8 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ ! -f $OMNI_FILE ]]; then
-    echo "Couldn't find $OMNI_FILE"
+    echo "Couldn't find omni.ja in Firefox install directory: $MOZILLA_HOME"
+    echo "Pass the folder that contains omni.ja, not a Firefox profile or parent folder."
     exit 1
 fi
 

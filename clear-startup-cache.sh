@@ -210,7 +210,8 @@ resolve_profile_dirs() {
     if [[ -n $PROFILE_ARG ]]; then
         normalized_profile_arg=$(normalize_input_path "$PROFILE_ARG")
         if [[ ! -d $normalized_profile_arg ]]; then
-            echo "Couldn't find profile directory $PROFILE_ARG"
+            echo "Couldn't find Firefox profile directory: $PROFILE_ARG"
+            echo "Pass a Firefox profile directory, not the Firefox install directory."
             exit 1
         fi
         add_profile_dir "$normalized_profile_arg"
@@ -220,7 +221,8 @@ resolve_profile_dirs() {
     if [[ -n $PROFILES_INI_ARG ]]; then
         normalized_profiles_ini_arg=$(normalize_input_path "$PROFILES_INI_ARG")
         if [[ ! -f $normalized_profiles_ini_arg ]]; then
-            echo "Couldn't find profiles.ini $PROFILES_INI_ARG"
+            echo "Couldn't find Firefox profiles.ini: $PROFILES_INI_ARG"
+            echo "Pass a Firefox profiles.ini file or omit --profiles-ini to auto-detect common locations."
             exit 1
         fi
         read_profiles_ini "$normalized_profiles_ini_arg"

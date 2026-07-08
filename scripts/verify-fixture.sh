@@ -428,6 +428,31 @@ run_mozilla_home_argument_fixture() {
     fi
 }
 
+run_path_error_fixture() {
+    local name="path-errors"
+    local missing_home="$TEMPDIR/$name/missing-firefox"
+    local empty_home="$TEMPDIR/$name/empty-firefox"
+    local missing_profile="$TEMPDIR/$name/missing-profile"
+    local missing_profiles_ini="$TEMPDIR/$name/missing-profiles.ini"
+
+    mkdir -p "$empty_home"
+
+    assert_command_fails_with "$name-patch-missing-home" "Couldn't find Firefox install directory:" \
+        env -u MOZILLA_HOME "$REPO_ROOT/patch-firefox.sh" --status --mozilla-home "$missing_home"
+    assert_command_fails_with "$name-patch-empty-home" "Pass the folder that contains omni.ja" \
+        env -u MOZILLA_HOME "$REPO_ROOT/patch-firefox.sh" --status --mozilla-home "$empty_home"
+
+    assert_command_fails_with "$name-unpatch-missing-home" "Expected a directory containing omni.ja" \
+        env -u MOZILLA_HOME "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$missing_home"
+    assert_command_fails_with "$name-unpatch-empty-home" "Couldn't find omni.ja in Firefox install directory:" \
+        env -u MOZILLA_HOME "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$empty_home"
+
+    assert_command_fails_with "$name-missing-profile" "Pass a Firefox profile directory, not the Firefox install directory." \
+        "$REPO_ROOT/clear-startup-cache.sh" --status --profile "$missing_profile"
+    assert_command_fails_with "$name-missing-profiles-ini" "Pass a Firefox profiles.ini file or omit --profiles-ini" \
+        "$REPO_ROOT/clear-startup-cache.sh" --status --profiles-ini "$missing_profiles_ini"
+}
+
 run_patch_failure_fixture() {
     local name=$1
     local format=$2
@@ -652,6 +677,7 @@ run_patch_dry_run_fixture
 run_patch_dry_run_readonly_home_fixture
 run_unpatch_dry_run_readonly_home_fixture
 run_mozilla_home_argument_fixture
+run_path_error_fixture
 run_patch_failure_fixture "already-false" "modern-false" "modules/AppConstants.sys.mjs"
 run_patch_failure_fixture "missing-appconstants" "missing" "modules/AppConstants.sys.mjs"
 run_process_guard_fixture

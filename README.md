@@ -83,6 +83,8 @@ If the Windows launcher cannot auto-detect the install directory, pass it explic
 
 The Windows launchers accept normal Windows install paths such as `C:\Program Files\Mozilla Firefox`; the scripts normalize them when needed.
 
+For patch and restore commands, pass the Firefox install folder that contains `omni.ja`. For startup-cache cleanup, pass a Firefox profile directory or a `profiles.ini` file when auto-detection is not enough.
+
 From Git Bash, macOS, or Linux, use the shell scripts directly:
 
 ```bash
