@@ -149,6 +149,13 @@ create_fixture() {
     local omni_source="$TEMPDIR/$name/omni-source"
 
     mkdir -p "$fixture_home"
+    cat > "$fixture_home/application.ini" <<'APPLICATION_INI'
+[App]
+Name=Firefox
+Version=99.0
+BuildID=20260101000000
+APPLICATION_INI
+
     if [[ $format == "missing" ]]; then
         mkdir -p "$omni_source/modules"
         echo "export const NothingUseful = true;" > "$omni_source/modules/Other.sys.mjs"
@@ -270,11 +277,15 @@ run_status_fixture() {
     create_fixture "$name" "modern" "$app_constants_relpath"
 
     status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --status --mozilla-home "$fixture_home")
+    assert_output_contains "$name-patch-unpatched" "$status_output" "application: Firefox 99.0"
+    assert_output_contains "$name-patch-unpatched" "$status_output" "build id: 20260101000000"
     assert_output_contains "$name-patch-unpatched" "$status_output" "MOZ_REQUIRE_SIGNING: true"
     assert_output_contains "$name-patch-unpatched" "$status_output" "omni-orig.ja: absent"
     assert_output_contains "$name-patch-unpatched" "$status_output" "state: unpatched"
 
     status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$fixture_home")
+    assert_output_contains "$name-unpatch-unpatched" "$status_output" "application: Firefox 99.0"
+    assert_output_contains "$name-unpatch-unpatched" "$status_output" "build id: 20260101000000"
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "MOZ_REQUIRE_SIGNING: true"
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "state: unpatched"
 

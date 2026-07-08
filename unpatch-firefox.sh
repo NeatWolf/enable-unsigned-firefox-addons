@@ -316,6 +316,17 @@ app_constants_value() {
     esac
 }
 
+application_ini_value() {
+    local ini_file=$1
+    local key=$2
+    local line
+
+    line=$(grep -m 1 "^$key=" "$ini_file" || true)
+    if [[ -n $line ]]; then
+        printf '%s\n' "${line#*=}"
+    fi
+}
+
 assert_firefox_not_running() {
     if firefox_is_running_for_home "$MOZILLA_HOME"; then
         echo "Firefox appears to be running from $MOZILLA_HOME. Close Firefox before modifying omni.ja."
@@ -347,9 +358,24 @@ print_extract_details() {
 print_status() {
     local app_constants_file
     local require_signing
+    local application_ini="$MOZILLA_HOME/application.ini"
+    local app_name
+    local app_version
+    local build_id
 
     echo "MOZILLA_HOME=$MOZILLA_HOME"
     echo "omni.ja: present"
+    if [[ -f $application_ini ]]; then
+        app_name=$(application_ini_value "$application_ini" "Name")
+        app_version=$(application_ini_value "$application_ini" "Version")
+        build_id=$(application_ini_value "$application_ini" "BuildID")
+        echo "application: ${app_name:-unknown} ${app_version:-unknown}"
+        echo "build id: ${build_id:-unknown}"
+    else
+        echo "application: unknown (application.ini not found)"
+        echo "build id: unknown"
+    fi
+
     if [[ -f $ORIGINAL_OMNI_FILE ]]; then
         echo "omni-orig.ja: present"
     else
