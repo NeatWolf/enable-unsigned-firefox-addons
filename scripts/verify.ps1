@@ -14,6 +14,7 @@ $RequiredFiles = @(
     'scripts\verify-fixture.sh',
     '.github\workflows\verify.yml',
     '.github\dependabot.yml',
+    '.github\ISSUE_TEMPLATE\config.yml',
     'AGENTS.md',
     'CONTRIBUTING.md',
     '.editorconfig',
@@ -84,7 +85,7 @@ foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', 
     }
 }
 
-foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--profile', '--profiles-ini', 'profiles.ini', 'normalize_input_path', 'read_profiles_ini', 'startup_cache_dirs', 'remove_startup_cache', 'No Firefox profiles found', 'No startupCache directories found', 'Dry run OK')) {
+foreach ($Pattern in @('#!/usr/bin/env bash', 'set -euo pipefail', '--dry-run', '--status', 'STATUS_MODE', '--profile', '--profiles-ini', 'profiles.ini', 'normalize_input_path', 'read_profiles_ini', 'startup_cache_dirs', 'remove_startup_cache', 'print_status', 'startupCache: present', 'startupCache: absent', 'No Firefox profiles found', 'No startupCache directories found', 'Dry run OK')) {
     if (-not $StartupCacheScript.Contains($Pattern)) {
         throw "clear-startup-cache.sh is missing expected cache cleanup behavior: $Pattern"
     }
@@ -95,7 +96,7 @@ foreach ($Launcher in @(
     @{ Name = 'unpatch-firefox.cmd'; Text = $UnpatchLauncher },
     @{ Name = 'clear-startup-cache.cmd'; Text = $StartupCacheLauncher }
 )) {
-    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', 'CONFIRM_MODIFY', ':classify_args', ':confirm_modify', 'choice /C YN /N', 'Cancelled. No files were changed.', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", '"%BASH_EXE%" "%SCRIPT%" %*')) {
+    foreach ($Pattern in @('@echo off', 'PAUSE_ON_ERROR', 'FIREFOX_PATCH_NO_PAUSE', 'CONFIRM_MODIFY', ':classify_args', '--status', ':confirm_modify', 'choice /C YN /N', 'Cancelled. No files were changed.', ':pause_on_error', 'double-clicked .cmd', 'pause >nul', '%~dpn0.sh', ':find_bash', 'Git\bin\bash.exe', 'where bash.exe', ':is_wsl_bash', 'System32\bash.exe', 'Microsoft\WindowsApps\bash.exe', "Couldn't find Git Bash", '"%BASH_EXE%" "%SCRIPT%" %*')) {
         if (-not $Launcher.Text.Contains($Pattern)) {
             throw "$($Launcher.Name) is missing expected launcher behavior: $Pattern"
         }
@@ -103,7 +104,7 @@ foreach ($Launcher in @(
 }
 
 $FixtureScript = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\verify-fixture.sh') -Raw
-foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'modern-dry-run-readonly-home', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'running-firefox-unpatch-guard', 'startup-cache-profiles-ini', 'windows-absolute', 'Windows --profile', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
+foreach ($Pattern in @('modern-sysm', 'legacy-jsm', 'status-mode', 'modern-dry-run-readonly-home', 'unpatch-dry-run-readonly-home', 'mozilla-home-argument', 'already-false', 'missing-appconstants', 'running-firefox-guard', 'running-firefox-unpatch-guard', 'startup-cache-profiles-ini', 'startupCache: present', 'windows-absolute', 'Windows --profile', 'POWERSHELL_ZIP_BIN', '--dry-run', '--status')) {
     if (-not $FixtureScript.Contains($Pattern)) {
         throw "scripts\verify-fixture.sh is missing expected test coverage: $Pattern"
     }
@@ -123,15 +124,22 @@ foreach ($Pattern in @('package-ecosystem: "github-actions"', 'interval: "monthl
     }
 }
 
+$IssueTemplateConfig = Get-Content -LiteralPath (Join-Path $RepoRoot '.github\ISSUE_TEMPLATE\config.yml') -Raw
+foreach ($Pattern in @('blank_issues_enabled: false', 'No support policy', 'SUPPORT.md')) {
+    if (-not $IssueTemplateConfig.Contains($Pattern)) {
+        throw ".github\ISSUE_TEMPLATE\config.yml is missing expected support boundary setting: $Pattern"
+    }
+}
+
 $SupportPolicy = Get-Content -LiteralPath (Join-Path $RepoRoot 'SUPPORT.md') -Raw
-foreach ($Pattern in @('provided as-is', 'no support commitment', 'asks for confirmation', 'modifying files', 'patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'patch-firefox.sh --status', 'patch-firefox.sh --dry-run', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --dry-run')) {
+foreach ($Pattern in @('provided as-is', 'no support commitment', 'asks for confirmation', 'modifying files', 'patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'patch-firefox.sh --status', 'patch-firefox.sh --dry-run', 'clear-startup-cache.cmd --status', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run')) {
     if (-not $SupportPolicy.Contains($Pattern)) {
         throw "SUPPORT.md is missing expected policy text: $Pattern"
     }
 }
 
 $Readme = Get-Content -LiteralPath (Join-Path $RepoRoot 'README.md') -Raw
-foreach ($Pattern in @('patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --dry-run', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
+foreach ($Pattern in @('patch-firefox.cmd --status', 'patch-firefox.cmd --dry-run', 'ask for confirmation', 'modifying files', 'clear-startup-cache.cmd --status', 'clear-startup-cache.cmd --dry-run', 'clear-startup-cache.sh --status', 'clear-startup-cache.sh --dry-run', 'C:\Program Files\Mozilla Firefox', 'Windows paths such as', 'stop before rebuilding or restoring files')) {
     if (-not $Readme.Contains($Pattern)) {
         throw "README.md is missing expected Windows launcher guidance: $Pattern"
     }

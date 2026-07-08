@@ -29,9 +29,10 @@ On Windows, a real patch or restore of a protected Firefox install can request a
 - `clear-startup-cache.cmd`: Windows launcher that finds Git Bash, asks before modifying files, and runs `clear-startup-cache.sh`.
 - `patch-firefox.sh`: inspects status, dry-runs safely, edits Firefox `AppConstants`, verifies the replacement archive, then backs up `omni.ja` to `omni-orig.ja` and swaps in the patched archive.
 - `unpatch-firefox.sh`: inspects status, dry-runs safely, restores `omni.ja` from `omni-orig.ja` through a temporary replacement file, then removes the backup.
-- `clear-startup-cache.sh`: clears Firefox profile `startupCache` directories listed in `profiles.ini`, with dry-run support.
+- `clear-startup-cache.sh`: inspects or clears Firefox profile `startupCache` directories listed in `profiles.ini`, with status and dry-run support.
 - `scripts/verify.ps1`: lightweight repository checks that are safe to run on Windows and do not modify Firefox.
 - `scripts/verify-fixture.sh`: disposable patch/unpatch fixture test, run by `verify.ps1` when Bash has the required Unix tools.
+- `.github/ISSUE_TEMPLATE/config.yml`: disables blank GitHub issues and points readers back to the as-is support policy.
 - `AGENTS.md`: rules for future automated work in this repository.
 - `SUPPORT.md`: support policy and as-is notice.
 
@@ -58,6 +59,7 @@ On Windows, start from PowerShell or Command Prompt:
 .\patch-firefox.cmd --status
 .\patch-firefox.cmd --dry-run
 .\patch-firefox.cmd
+.\clear-startup-cache.cmd --status
 .\clear-startup-cache.cmd --dry-run
 .\clear-startup-cache.cmd
 ```
@@ -80,6 +82,7 @@ From Git Bash, macOS, or Linux, use the shell scripts directly:
 ./patch-firefox.sh --status
 ./patch-firefox.sh --dry-run
 ./patch-firefox.sh
+./clear-startup-cache.sh --status
 ./clear-startup-cache.sh --dry-run
 ./clear-startup-cache.sh
 ```
@@ -103,6 +106,7 @@ Follow the following steps to patch Firefox to disable addon signing.
 1. Run `patch-firefox.cmd --status --mozilla-home /path/to/firefox` on Windows, or `patch-firefox.sh --status --mozilla-home /path/to/firefox` from Bash, to inspect the archive, current signing constant, rollback backup, and Firefox process state without modifying anything.
 1. Run the same command with `--dry-run` to confirm that the archive can be extracted, patched, rebuilt, and verified without modifying Firefox. Dry run does not write to `MOZILLA_HOME`, so it should work even before you have admin/write access for the real patch.
 1. Run the patch command without `--status` or `--dry-run`. On Windows, the launcher asks for confirmation first, then requests UAC elevation automatically if the Firefox directory is protected. If it works, the last line should be Done.
+1. Run `clear-startup-cache.cmd --status` on Windows, or `clear-startup-cache.sh --status` from Bash, to see which Firefox profiles the helper detects.
 1. Run `clear-startup-cache.cmd --dry-run` on Windows, or `clear-startup-cache.sh --dry-run` from Bash, to preview Firefox profile `startupCache` directories that will be cleared.
 1. Run `clear-startup-cache.cmd` on Windows, or `clear-startup-cache.sh` from Bash, to remove those `startupCache` directories. On Windows, the launcher asks for confirmation before deleting cache folders. The helper uses Firefox `profiles.ini`; for an unusual profile location, pass `--profile /path/to/profile`. Windows paths such as `C:\Users\Name\AppData\Roaming\Mozilla\Firefox\Profiles\xxxxxxxx.default-release` are accepted by the `.cmd` launcher.
 1. Start Firefox.

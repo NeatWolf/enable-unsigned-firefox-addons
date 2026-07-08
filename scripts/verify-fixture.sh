@@ -446,6 +446,7 @@ run_startup_cache_fixture() {
     local stray_profile="$firefox_data/Profiles/not-listed.default"
     local direct_profile="$TEMPDIR/$name/direct.default"
     local dry_run_output
+    local status_output
     local clean_output
     local windows_ini
     local windows_profile
@@ -477,6 +478,11 @@ IsRelative=0
 Path=$absolute_profile
 PROFILES_INI
 
+    status_output=$("$REPO_ROOT/clear-startup-cache.sh" --status --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-status" "$status_output" "profiles: 2"
+    assert_output_contains "$name-status" "$status_output" "startupCache: present $relative_profile/startupCache"
+    assert_output_contains "$name-status" "$status_output" "startupCache: present $absolute_profile/startupCache"
+
     dry_run_output=$("$REPO_ROOT/clear-startup-cache.sh" --dry-run --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $relative_profile/startupCache"
     assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $absolute_profile/startupCache"
@@ -500,6 +506,10 @@ PROFILES_INI
 
     clean_output=$("$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-clean" "$clean_output" "No startupCache directories found."
+
+    status_output=$("$REPO_ROOT/clear-startup-cache.sh" --status --profile "$direct_profile")
+    assert_output_contains "$name-direct-status" "$status_output" "profiles: 1"
+    assert_output_contains "$name-direct-status" "$status_output" "startupCache: present $direct_profile/startupCache"
 
     "$REPO_ROOT/clear-startup-cache.sh" --profile "$direct_profile" > /dev/null
     if [[ -d "$direct_profile/startupCache" ]]; then

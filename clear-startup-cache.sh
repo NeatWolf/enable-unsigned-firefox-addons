@@ -2,15 +2,17 @@
 set -euo pipefail
 
 DRY_RUN=0
+STATUS_MODE=0
 PROFILE_ARG=""
 PROFILES_INI_ARG=""
 
 usage() {
     cat <<USAGE
-Usage: $0 [--dry-run] [--profile PATH | --profiles-ini PATH]
+Usage: $0 [--dry-run|--status] [--profile PATH | --profiles-ini PATH]
 
 Options:
   --dry-run            Print startupCache directories that would be removed.
+  --status             Show detected Firefox profiles and startupCache state.
   --profile PATH       Firefox profile directory containing startupCache.
   --profiles-ini PATH  Firefox profiles.ini to read.
   -h, --help           Show this help.
@@ -23,6 +25,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --dry-run)
             DRY_RUN=1
+            shift
+            ;;
+        --status)
+            STATUS_MODE=1
             shift
             ;;
         --profile)
@@ -70,6 +76,11 @@ done
 
 if [[ -n $PROFILE_ARG && -n $PROFILES_INI_ARG ]]; then
     echo "Use either --profile or --profiles-ini, not both"
+    exit 1
+fi
+
+if [[ $DRY_RUN -eq 1 && $STATUS_MODE -eq 1 ]]; then
+    echo "Use either --dry-run or --status, not both"
     exit 1
 fi
 
@@ -253,11 +264,34 @@ remove_startup_cache() {
     echo "Removed $cache_dir"
 }
 
-require_tools rm
+print_status() {
+    local profile_dir
+    local cache_dir
+
+    echo "profiles: ${#PROFILE_DIRS[@]}"
+    for profile_dir in "${PROFILE_DIRS[@]}"; do
+        cache_dir="$profile_dir/startupCache"
+        echo "profile: $profile_dir"
+        if [[ -d $cache_dir ]]; then
+            echo "startupCache: present $cache_dir"
+        else
+            echo "startupCache: absent $cache_dir"
+        fi
+    done
+}
+
+if [[ $STATUS_MODE -eq 0 && $DRY_RUN -eq 0 ]]; then
+    require_tools rm
+fi
 resolve_profile_dirs
 
 if [[ ${#PROFILE_DIRS[@]} -eq 0 ]]; then
     echo "No Firefox profiles found."
+    exit 0
+fi
+
+if [[ $STATUS_MODE -eq 1 ]]; then
+    print_status
     exit 0
 fi
 

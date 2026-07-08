@@ -39,6 +39,7 @@ exit /b %EXIT_CODE%
 :classify_args
 if "%~1"=="" exit /b 0
 if /I "%~1"=="--dry-run" set "CONFIRM_MODIFY=0"
+if /I "%~1"=="--status" set "CONFIRM_MODIFY=0"
 if /I "%~1"=="-h" set "CONFIRM_MODIFY=0"
 if /I "%~1"=="--help" set "CONFIRM_MODIFY=0"
 shift

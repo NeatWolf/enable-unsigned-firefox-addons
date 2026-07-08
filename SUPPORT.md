@@ -12,5 +12,7 @@ Before using the scripts, read the README. On Windows, run
 recoverable backup of the Firefox install or be ready to reinstall Firefox. On
 Windows, real patch and restore commands may request UAC elevation only when the
 Firefox install is not writable. The Windows launcher asks for confirmation
-before modifying files. Run `clear-startup-cache.cmd --dry-run` or
-`clear-startup-cache.sh --dry-run` before clearing Firefox profile caches.
+before modifying files. Run `clear-startup-cache.cmd --status`,
+`clear-startup-cache.cmd --dry-run`, `clear-startup-cache.sh --status`, and
+`clear-startup-cache.sh --dry-run` as appropriate before clearing Firefox
+profile caches.
