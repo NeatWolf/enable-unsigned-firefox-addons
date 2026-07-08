@@ -224,6 +224,9 @@ relaunch_elevated() {
     local action=$1
     local bash_win
     local elevated_command
+    local elevated_log
+    local elevated_log_win
+    local elevated_status
     local arg
 
     if [[ ${ELEVATED_FIREFOX_PATCH:-} == "1" ]]; then
@@ -239,23 +242,38 @@ relaunch_elevated() {
     fi
 
     bash_win=$(cygpath -w "$BASH")
+    elevated_log=$(mktemp)
+    elevated_log_win=$(cygpath -w "$elevated_log")
     elevated_command="cd $(bash_quote "$PWD") && MOZILLA_HOME=$(bash_quote "$MOZILLA_HOME") ELEVATED_FIREFOX_PATCH=1 $(bash_quote "$SCRIPT_PATH")"
     for arg in "${ORIGINAL_ARGS[@]}"; do
         elevated_command+=" $(bash_quote "$arg")"
     done
 
     echo "$action requires write access to $MOZILLA_HOME."
-    echo "Requesting Windows administrator permission..."
-    ELEVATED_BASH_WIN="$bash_win" ELEVATED_COMMAND="$elevated_command" powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '
+    echo "Windows will ask for administrator permission using Windows PowerShell."
+    echo "PowerShell runs Git Bash only because these patch scripts are Bash scripts."
+    echo "This is not a Git download, update, sign-in, or internet action."
+    ELEVATED_BASH_WIN="$bash_win" ELEVATED_COMMAND="$elevated_command" ELEVATED_LOG_WIN="$elevated_log_win" powershell.exe -NoProfile -ExecutionPolicy Bypass -Command '
 try {
-    $process = Start-Process -FilePath $env:ELEVATED_BASH_WIN -ArgumentList @("-lc", $env:ELEVATED_COMMAND) -Verb RunAs -Wait -PassThru
+    $inner = @"
+`$ErrorActionPreference = "Continue"
+& `$env:ELEVATED_BASH_WIN -lc `$env:ELEVATED_COMMAND *> `$env:ELEVATED_LOG_WIN
+exit `$LASTEXITCODE
+"@
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
+    $process = Start-Process -FilePath "powershell.exe" -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", $encoded) -Verb RunAs -Wait -PassThru
     exit $process.ExitCode
 } catch {
     Write-Error $_
     exit 1
 }
 '
-    exit $?
+    elevated_status=$?
+    if [[ -s $elevated_log ]]; then
+        cat "$elevated_log"
+    fi
+    rm -f "$elevated_log"
+    exit "$elevated_status"
 }
 
 ensure_write_access_or_relaunch() {

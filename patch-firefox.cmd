@@ -54,6 +54,8 @@ echo This will patch Firefox by replacing omni.ja.
 echo Firefox must be closed. Run --dry-run first to test without changing files.
 echo If Firefox is installed under Program Files, Windows may ask for
 echo administrator approval.
+echo The approval may mention Windows PowerShell. Git Bash is only the local
+echo script runner; this is not a Git download, update, or sign-in.
 echo.
 echo Safer first:
 echo   "%~nx0" --dry-run %*
@@ -100,10 +102,12 @@ for /f "delims=" %%P in ('where bash.exe 2^>nul') do (
 )
 
 :bash_not_found
-echo Couldn't find Git Bash.
+echo Couldn't find Git Bash, the local script runner this tool needs on Windows.
 echo Install Git for Windows from https://git-scm.com/download/win
 echo Git for Windows includes Git Bash. Reopen this launcher after installing it.
+echo This tool does not use Git for downloads, updates, sign-in, or internet access.
 echo WSL bash is not used by this launcher.
+echo No Firefox files were changed.
 exit /b 1
 
 :is_wsl_bash

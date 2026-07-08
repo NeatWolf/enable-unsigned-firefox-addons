@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Changed Windows elevation to request UAC through PowerShell, explain that Git Bash is only the local script runner, and print elevated patch output back in the menu.
+- Added a menu verification gate so option 3 stops if Firefox was not actually patched.
+- Clarified missing-Git-Bash launcher errors so users know Git Bash is the local Windows script runner and no Firefox files were changed.
 - Made the Windows menu hide nested command-line `next step:` hints during full setup dry-run checks and print one clear menu-level next step instead.
 - Clarified that menu option 3 is the full setup step: patch Firefox, set the selected profile add-on setting, and clear startup cache.
 - Fixed Windows elevation detection so real patch and restore commands request administrator approval before writing inside protected `Program Files` Firefox installs.

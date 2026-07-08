@@ -100,12 +100,20 @@ echo Patching Firefox...
 call "%~dp0patch-firefox.cmd"
 if errorlevel 1 goto full_setup_done
 echo.
+echo Verifying Firefox patch...
+call :assert_patch_applied
+if errorlevel 1 goto full_setup_done
+echo.
 echo Setting the add-on setting for the selected Firefox profile...
 call "%~dp0set-unsigned-addon-pref.cmd" --profile "%SELECTED_PROFILE%"
 if errorlevel 1 goto full_setup_done
 echo.
 echo Clearing Firefox startup cache...
 call "%~dp0clear-startup-cache.cmd"
+if errorlevel 1 goto full_setup_done
+echo.
+echo Full setup finished.
+echo Start Firefox and verify unsigned add-on support before installing add-ons.
 
 :full_setup_done
 set "FIREFOX_PATCH_ASSUME_YES="
@@ -175,6 +183,8 @@ echo should allow unsigned add-ons, and clear rebuildable startup cache.
 echo This is the full setup step. There is no extra phase after it finishes.
 echo If Firefox is installed under Program Files, Windows may ask for
 echo administrator approval during the patch step.
+echo That administrator prompt may mention Windows PowerShell. Git Bash is
+echo only the local script runner; this is not a Git download, update, or sign-in.
 echo.
 echo A Firefox profile is a separate Firefox user-data folder. Choose the
 echo profile where you will install the unsigned add-on.
@@ -233,6 +243,43 @@ if not defined SELECTED_PROFILE (
     exit /b 1
 )
 
+exit /b 0
+
+:assert_patch_applied
+set "PATCH_STATUS_OUTPUT="
+for /f "delims=" %%T in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.IO.Path]::GetTempFileName()"') do set "PATCH_STATUS_OUTPUT=%%T"
+if not defined PATCH_STATUS_OUTPUT (
+    echo Couldn't create a temporary patch status file.
+    exit /b 1
+)
+
+call "%~dp0patch-firefox.cmd" --status > "%PATCH_STATUS_OUTPUT%" 2>&1
+set "PATCH_STATUS_EXIT=!ERRORLEVEL!"
+if not "!PATCH_STATUS_EXIT!"=="0" (
+    type "%PATCH_STATUS_OUTPUT%"
+    del "%PATCH_STATUS_OUTPUT%" >nul 2>nul
+    echo The patch could not be verified. Profile and cache steps were not run.
+    exit /b 1
+)
+
+findstr /C:"MOZ_REQUIRE_SIGNING: false" "%PATCH_STATUS_OUTPUT%" >nul
+if errorlevel 1 (
+    type "%PATCH_STATUS_OUTPUT%"
+    del "%PATCH_STATUS_OUTPUT%" >nul 2>nul
+    echo Firefox is not patched. Profile and cache steps were not run.
+    exit /b 1
+)
+
+findstr /C:"state: patched" "%PATCH_STATUS_OUTPUT%" >nul
+if errorlevel 1 (
+    type "%PATCH_STATUS_OUTPUT%"
+    del "%PATCH_STATUS_OUTPUT%" >nul 2>nul
+    echo Firefox patch state could not be confirmed. Profile and cache steps were not run.
+    exit /b 1
+)
+
+del "%PATCH_STATUS_OUTPUT%" >nul 2>nul
+echo Firefox patch verified.
 exit /b 0
 
 :run_menu_check
