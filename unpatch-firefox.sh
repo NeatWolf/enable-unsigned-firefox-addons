@@ -446,6 +446,7 @@ if [[ ! -f $ORIGINAL_OMNI_FILE ]]; then
 fi
 
 if [[ $DRY_RUN -eq 0 ]]; then
+    assert_firefox_not_running
     ensure_write_access_or_relaunch "Restoring Firefox"
 fi
 
@@ -471,8 +472,6 @@ if [[ $DRY_RUN -eq 1 ]]; then
     echo "Dry run OK"
     exit 0
 fi
-
-assert_firefox_not_running
 
 mv "$RESTORE_FILE" "$OMNI_FILE"
 RESTORE_FILE=""

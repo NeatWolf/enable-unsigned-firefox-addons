@@ -20,7 +20,7 @@ For various reasons, you might prefer to be on the more stable release channel. 
 
 The scripts use `bash`, `unzip`, `mktemp` (from GNU coreutils), `grep`, and `sed` for inspection and verification. Patching prefers Info-ZIP `zip` to rebuild `omni.ja`. If `zip` is not installed on Windows, `patch-firefox.sh` can rebuild the archive with PowerShell/.NET. Python is only a final optional fallback and should not be assumed on target machines.
 
-On Windows, a real patch or restore of a protected Firefox install can request administrator permission through a UAC prompt. `--status` and `--dry-run` do not request elevation and should work before you have write access.
+On Windows, a real patch or restore of a protected Firefox install can request administrator permission through a UAC prompt. `--status` and `--dry-run` do not request elevation and should work before you have write access. If Firefox is still open, real patch and restore commands stop before rebuilding or restoring files.
 
 # Repository layout
 

@@ -404,6 +404,40 @@ POWERSHELL
     assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
 }
 
+run_unpatch_process_guard_fixture() {
+    local name="running-firefox-unpatch-guard"
+    local app_constants_relpath="modules/AppConstants.sys.mjs"
+    local fixture_home="$TEMPDIR/$name/firefox"
+    local fake_bin="$TEMPDIR/$name/fake-bin"
+
+    create_fixture "$name" "modern" "$app_constants_relpath"
+    SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null
+
+    mkdir -p "$fake_bin"
+    cat > "$fake_bin/powershell.exe" <<'POWERSHELL'
+#!/usr/bin/env bash
+echo 12345
+POWERSHELL
+    chmod +x "$fake_bin/powershell.exe"
+
+    if PATH="$fake_bin:$PATH" "$REPO_ROOT/unpatch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null 2> /dev/null; then
+        echo "$name: unpatch unexpectedly succeeded while Firefox was reported running"
+        exit 1
+    fi
+
+    if [[ ! -f "$fixture_home/omni-orig.ja" ]]; then
+        echo "$name: unpatch process guard removed omni-orig.ja"
+        exit 1
+    fi
+
+    if compgen -G "$fixture_home/omni.ja.restore.*" > /dev/null; then
+        echo "$name: unpatch process guard left restore temp file"
+        exit 1
+    fi
+
+    assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "false"
+}
+
 run_startup_cache_fixture() {
     local name="startup-cache-profiles-ini"
     local firefox_data="$TEMPDIR/$name/firefox-data"
@@ -519,6 +553,7 @@ run_mozilla_home_argument_fixture
 run_patch_failure_fixture "already-false" "modern-false" "modules/AppConstants.sys.mjs"
 run_patch_failure_fixture "missing-appconstants" "missing" "modules/AppConstants.sys.mjs"
 run_process_guard_fixture
+run_unpatch_process_guard_fixture
 run_startup_cache_fixture
 
 echo "Fixture verification completed."

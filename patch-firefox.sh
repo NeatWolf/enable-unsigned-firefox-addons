@@ -585,6 +585,16 @@ if [[ ! -f $OMNI_FILE ]]; then
     exit 1
 fi
 
+if [[ $STATUS_MODE -eq 0 && -f $ORIGINAL_OMNI_FILE ]]; then
+    echo "Already patched?"
+    exit 1
+fi
+
+if [[ $STATUS_MODE -eq 0 && $DRY_RUN -eq 0 ]]; then
+    assert_firefox_not_running
+    ensure_write_access_or_relaunch "Patching Firefox"
+fi
+
 TEMPDIR=$(mktemp -d)
 if [[ ! -d $TEMPDIR ]]; then
     echo "Couldn't create tempdir"
@@ -597,15 +607,6 @@ extract_omni "$OMNI_FILE" "$TEMPDIR" "$UNZIP_LOG"
 if [[ $STATUS_MODE -eq 1 ]]; then
     print_status
     exit 0
-fi
-
-if [[ -f $ORIGINAL_OMNI_FILE ]]; then
-    echo "Already patched?"
-    exit 1
-fi
-
-if [[ $DRY_RUN -eq 0 ]]; then
-    ensure_write_access_or_relaunch "Patching Firefox"
 fi
 
 if [[ $DRY_RUN -eq 1 ]]; then
@@ -637,8 +638,6 @@ if [[ $DRY_RUN -eq 1 ]]; then
     echo "Dry run OK"
     exit 0
 fi
-
-assert_firefox_not_running
 
 cp -p "$OMNI_FILE" "$ORIGINAL_OMNI_FILE"
 if ! mv "$NEW_OMNI_FILE" "$OMNI_FILE"; then
