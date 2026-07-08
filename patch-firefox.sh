@@ -259,6 +259,26 @@ repacker_status() {
     fi
 }
 
+print_patch_next_step() {
+    local require_signing=$1
+    local firefox_running=$2
+    local repacker=$3
+
+    if [[ $require_signing == "false" && -f $ORIGINAL_OMNI_FILE ]]; then
+        echo "next step: no patch needed; use unpatch-firefox before updating Firefox."
+    elif [[ $require_signing == "false" ]]; then
+        echo "next step: no patch needed; no rollback backup was found."
+    elif [[ -f $ORIGINAL_OMNI_FILE ]]; then
+        echo "next step: restore or remove the leftover rollback backup before patching again."
+    elif [[ $firefox_running -eq 1 ]]; then
+        echo "next step: close Firefox before patching."
+    elif [[ $repacker == "missing" ]]; then
+        echo "next step: install Info-ZIP zip or use Windows PowerShell before patching."
+    elif [[ $require_signing == "true" ]]; then
+        echo "next step: run this script with --dry-run before patching."
+    fi
+}
+
 firefox_is_running_for_home() {
     local mozilla_home=$1
     local mozilla_home_physical
@@ -552,6 +572,8 @@ print_status() {
     local app_name
     local app_version
     local build_id
+    local firefox_running=0
+    local repacker
 
     echo "MOZILLA_HOME=$MOZILLA_HOME"
     echo "omni.ja: present"
@@ -572,10 +594,12 @@ print_status() {
         echo "omni-orig.ja: absent"
     fi
     echo "write access: $(write_access_status)"
-    echo "repacker: $(repacker_status)"
+    repacker=$(repacker_status)
+    echo "repacker: $repacker"
 
     if firefox_is_running_for_home "$MOZILLA_HOME"; then
         echo "firefox process: running from MOZILLA_HOME"
+        firefox_running=1
     else
         echo "firefox process: not detected for MOZILLA_HOME"
     fi
@@ -602,6 +626,8 @@ print_status() {
         echo "state: unknown"
         exit 1
     fi
+
+    print_patch_next_step "$require_signing" "$firefox_running" "$repacker"
 }
 
 resolve_mozilla_home

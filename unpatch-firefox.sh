@@ -242,6 +242,23 @@ write_access_status() {
     fi
 }
 
+print_restore_next_step() {
+    local require_signing=$1
+    local firefox_running=$2
+
+    if [[ $require_signing == "false" && ! -f $ORIGINAL_OMNI_FILE ]]; then
+        echo "next step: no rollback backup was found; this script cannot restore automatically."
+    elif [[ $require_signing == "true" && ! -f $ORIGINAL_OMNI_FILE ]]; then
+        echo "next step: no restore needed."
+    elif [[ $firefox_running -eq 1 ]]; then
+        echo "next step: close Firefox before restoring."
+    elif [[ $require_signing == "false" ]]; then
+        echo "next step: run this script with --dry-run before restoring."
+    elif [[ $require_signing == "true" ]]; then
+        echo "next step: run this script to remove the leftover rollback backup."
+    fi
+}
+
 firefox_is_running_for_home() {
     local mozilla_home=$1
     local mozilla_home_physical
@@ -392,6 +409,7 @@ print_status() {
     local app_name
     local app_version
     local build_id
+    local firefox_running=0
 
     echo "MOZILLA_HOME=$MOZILLA_HOME"
     echo "omni.ja: present"
@@ -415,6 +433,7 @@ print_status() {
 
     if firefox_is_running_for_home "$MOZILLA_HOME"; then
         echo "firefox process: running from MOZILLA_HOME"
+        firefox_running=1
     else
         echo "firefox process: not detected for MOZILLA_HOME"
     fi
@@ -441,6 +460,8 @@ print_status() {
         echo "state: unknown"
         exit 1
     fi
+
+    print_restore_next_step "$require_signing" "$firefox_running"
 }
 
 resolve_mozilla_home

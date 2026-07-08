@@ -305,6 +305,7 @@ run_status_fixture() {
     assert_output_contains "$name-patch-unpatched" "$status_output" "write access: available"
     assert_output_contains "$name-patch-unpatched" "$status_output" "repacker:"
     assert_output_contains "$name-patch-unpatched" "$status_output" "state: unpatched"
+    assert_output_contains "$name-patch-unpatched" "$status_output" "next step: run this script with --dry-run before patching."
 
     status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$fixture_home")
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "application: Firefox 99.0"
@@ -312,6 +313,7 @@ run_status_fixture() {
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "MOZ_REQUIRE_SIGNING: true"
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "write access: available"
     assert_output_contains "$name-unpatch-unpatched" "$status_output" "state: unpatched"
+    assert_output_contains "$name-unpatch-unpatched" "$status_output" "next step: no restore needed."
 
     SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null
 
@@ -319,10 +321,12 @@ run_status_fixture() {
     assert_output_contains "$name-patch-patched" "$status_output" "MOZ_REQUIRE_SIGNING: false"
     assert_output_contains "$name-patch-patched" "$status_output" "omni-orig.ja: present"
     assert_output_contains "$name-patch-patched" "$status_output" "state: patched with rollback backup"
+    assert_output_contains "$name-patch-patched" "$status_output" "next step: no patch needed; use unpatch-firefox before updating Firefox."
 
     status_output=$(SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$fixture_home")
     assert_output_contains "$name-unpatch-patched" "$status_output" "MOZ_REQUIRE_SIGNING: false"
     assert_output_contains "$name-unpatch-patched" "$status_output" "state: patched with rollback backup"
+    assert_output_contains "$name-unpatch-patched" "$status_output" "next step: run this script with --dry-run before restoring."
 
     SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/unpatch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null
 
@@ -330,6 +334,7 @@ run_status_fixture() {
     assert_output_contains "$name-patch-restored" "$status_output" "MOZ_REQUIRE_SIGNING: true"
     assert_output_contains "$name-patch-restored" "$status_output" "omni-orig.ja: absent"
     assert_output_contains "$name-patch-restored" "$status_output" "state: unpatched"
+    assert_output_contains "$name-patch-restored" "$status_output" "next step: run this script with --dry-run before patching."
 }
 
 run_patch_dry_run_fixture() {
@@ -441,6 +446,7 @@ run_process_guard_fixture() {
     local app_constants_relpath="modules/AppConstants.sys.mjs"
     local fixture_home="$TEMPDIR/$name/firefox"
     local fake_bin="$TEMPDIR/$name/fake-bin"
+    local status_output
 
     create_fixture "$name" "modern" "$app_constants_relpath"
     mkdir -p "$fake_bin"
@@ -449,6 +455,10 @@ run_process_guard_fixture() {
 echo 12345
 POWERSHELL
     chmod +x "$fake_bin/powershell.exe"
+
+    status_output=$(PATH="$fake_bin:$PATH" MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --status)
+    assert_output_contains "$name-status" "$status_output" "firefox process: running from MOZILLA_HOME"
+    assert_output_contains "$name-status" "$status_output" "next step: close Firefox before patching."
 
     if PATH="$fake_bin:$PATH" MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" > /dev/null 2> /dev/null; then
         echo "$name: patch unexpectedly succeeded while Firefox was reported running"
@@ -464,6 +474,7 @@ run_unpatch_process_guard_fixture() {
     local app_constants_relpath="modules/AppConstants.sys.mjs"
     local fixture_home="$TEMPDIR/$name/firefox"
     local fake_bin="$TEMPDIR/$name/fake-bin"
+    local status_output
 
     create_fixture "$name" "modern" "$app_constants_relpath"
     SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null
@@ -474,6 +485,10 @@ run_unpatch_process_guard_fixture() {
 echo 12345
 POWERSHELL
     chmod +x "$fake_bin/powershell.exe"
+
+    status_output=$(PATH="$fake_bin:$PATH" "$REPO_ROOT/unpatch-firefox.sh" --status --mozilla-home "$fixture_home")
+    assert_output_contains "$name-status" "$status_output" "firefox process: running from MOZILLA_HOME"
+    assert_output_contains "$name-status" "$status_output" "next step: close Firefox before restoring."
 
     if PATH="$fake_bin:$PATH" "$REPO_ROOT/unpatch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null 2> /dev/null; then
         echo "$name: unpatch unexpectedly succeeded while Firefox was reported running"
