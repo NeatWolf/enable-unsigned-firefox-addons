@@ -311,6 +311,7 @@ done
 
 if [[ $DRY_RUN -eq 1 ]]; then
     echo "Dry run OK"
+    echo "next step: run the same command without --dry-run to clear the listed startupCache directories."
 else
     echo Done
 fi

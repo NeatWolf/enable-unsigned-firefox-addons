@@ -549,6 +549,7 @@ cp -p "$ORIGINAL_OMNI_FILE" "$RESTORE_FILE"
 
 if [[ $DRY_RUN -eq 1 ]]; then
     echo "Dry run OK"
+    echo "next step: run the same command without --dry-run to restore Firefox."
     exit 0
 fi
 

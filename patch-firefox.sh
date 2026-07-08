@@ -741,6 +741,7 @@ verify_new_archive
 
 if [[ $DRY_RUN -eq 1 ]]; then
     echo "Dry run OK"
+    echo "next step: run the same command without --dry-run to patch Firefox."
     exit 0
 fi
 

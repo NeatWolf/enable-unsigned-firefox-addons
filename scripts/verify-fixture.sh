@@ -341,10 +341,13 @@ run_patch_dry_run_fixture() {
     local name="modern-dry-run"
     local app_constants_relpath="modules/AppConstants.sys.mjs"
     local fixture_home="$TEMPDIR/$name/firefox"
+    local dry_run_output
 
     create_fixture "$name" "modern" "$app_constants_relpath"
 
-    MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run > /dev/null
+    dry_run_output=$(MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run)
+    assert_output_contains "$name" "$dry_run_output" "Dry run OK"
+    assert_output_contains "$name" "$dry_run_output" "next step: run the same command without --dry-run to patch Firefox."
     assert_no_patch_side_effects "$name" "$fixture_home"
     assert_app_constants_value "$name" "$fixture_home/omni.ja" "$app_constants_relpath" "true"
 }
@@ -353,16 +356,19 @@ run_unpatch_dry_run_readonly_home_fixture() {
     local name="unpatch-dry-run-readonly-home"
     local app_constants_relpath="modules/AppConstants.sys.mjs"
     local fixture_home="$TEMPDIR/$name/firefox"
+    local dry_run_output
 
     create_fixture "$name" "modern" "$app_constants_relpath"
     SKIP_FIREFOX_PROCESS_CHECK=1 "$REPO_ROOT/patch-firefox.sh" --mozilla-home "$fixture_home" > /dev/null
 
     chmod a-w "$fixture_home" || true
-    if ! "$REPO_ROOT/unpatch-firefox.sh" --dry-run --mozilla-home "$fixture_home" > /dev/null; then
+    if ! dry_run_output=$("$REPO_ROOT/unpatch-firefox.sh" --dry-run --mozilla-home "$fixture_home"); then
         chmod u+w "$fixture_home" || true
         echo "$name: unpatch dry-run should not require write access to MOZILLA_HOME"
         exit 1
     fi
+    assert_output_contains "$name" "$dry_run_output" "Dry run OK"
+    assert_output_contains "$name" "$dry_run_output" "next step: run the same command without --dry-run to restore Firefox."
 
     chmod u+w "$fixture_home" || true
     if [[ ! -f "$fixture_home/omni-orig.ja" ]]; then
@@ -378,15 +384,17 @@ run_patch_dry_run_readonly_home_fixture() {
     local name="modern-dry-run-readonly-home"
     local app_constants_relpath="modules/AppConstants.sys.mjs"
     local fixture_home="$TEMPDIR/$name/firefox"
+    local dry_run_output
 
     create_fixture "$name" "modern" "$app_constants_relpath"
     chmod a-w "$fixture_home" || true
 
-    if ! MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run > /dev/null; then
+    if ! dry_run_output=$(MOZILLA_HOME="$fixture_home" "$REPO_ROOT/patch-firefox.sh" --dry-run); then
         chmod u+w "$fixture_home" || true
         echo "$name: patch dry-run should not require write access to MOZILLA_HOME"
         exit 1
     fi
+    assert_output_contains "$name" "$dry_run_output" "next step: run the same command without --dry-run to patch Firefox."
 
     chmod u+w "$fixture_home" || true
     assert_no_patch_side_effects "$name" "$fixture_home"
@@ -557,6 +565,7 @@ PROFILES_INI
     assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $relative_profile/startupCache"
     assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $absolute_profile/startupCache"
     assert_output_contains "$name-dry-run" "$dry_run_output" "Dry run OK"
+    assert_output_contains "$name-dry-run" "$dry_run_output" "next step: run the same command without --dry-run to clear the listed startupCache directories."
 
     if [[ ! -d "$relative_profile/startupCache" || ! -d "$absolute_profile/startupCache" ]]; then
         echo "$name: dry-run removed startupCache"
