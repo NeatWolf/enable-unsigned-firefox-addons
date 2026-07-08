@@ -267,6 +267,7 @@ remove_startup_cache() {
 print_status() {
     local profile_dir
     local cache_dir
+    local cache_count=0
 
     echo "profiles: ${#PROFILE_DIRS[@]}"
     for profile_dir in "${PROFILE_DIRS[@]}"; do
@@ -274,10 +275,18 @@ print_status() {
         echo "profile: $profile_dir"
         if [[ -d $cache_dir ]]; then
             echo "startupCache: present $cache_dir"
+            cache_count=$((cache_count + 1))
         else
             echo "startupCache: absent $cache_dir"
         fi
     done
+
+    echo "startupCache directories: $cache_count"
+    if [[ $cache_count -gt 0 ]]; then
+        echo "next step: run this script with --dry-run to preview startupCache cleanup."
+    else
+        echo "next step: no startupCache cleanup needed."
+    fi
 }
 
 if [[ $STATUS_MODE -eq 0 && $DRY_RUN -eq 0 ]]; then
@@ -287,6 +296,9 @@ resolve_profile_dirs
 
 if [[ ${#PROFILE_DIRS[@]} -eq 0 ]]; then
     echo "No Firefox profiles found."
+    if [[ $STATUS_MODE -eq 1 ]]; then
+        echo "next step: pass --profile or --profiles-ini if Firefox uses an unusual profile location."
+    fi
     exit 0
 fi
 

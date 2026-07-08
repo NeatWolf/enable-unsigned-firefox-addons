@@ -526,6 +526,7 @@ run_startup_cache_fixture() {
     local dry_run_output
     local status_output
     local clean_output
+    local empty_profiles_ini="$TEMPDIR/$name/empty-profiles.ini"
     local windows_ini
     local windows_profile
     local windows_direct_profile
@@ -556,10 +557,17 @@ IsRelative=0
 Path=$absolute_profile
 PROFILES_INI
 
+    : > "$empty_profiles_ini"
+    status_output=$("$REPO_ROOT/clear-startup-cache.sh" --status --profiles-ini "$empty_profiles_ini")
+    assert_output_contains "$name-empty-status" "$status_output" "No Firefox profiles found."
+    assert_output_contains "$name-empty-status" "$status_output" "next step: pass --profile or --profiles-ini if Firefox uses an unusual profile location."
+
     status_output=$("$REPO_ROOT/clear-startup-cache.sh" --status --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-status" "$status_output" "profiles: 2"
     assert_output_contains "$name-status" "$status_output" "startupCache: present $relative_profile/startupCache"
     assert_output_contains "$name-status" "$status_output" "startupCache: present $absolute_profile/startupCache"
+    assert_output_contains "$name-status" "$status_output" "startupCache directories: 2"
+    assert_output_contains "$name-status" "$status_output" "next step: run this script with --dry-run to preview startupCache cleanup."
 
     dry_run_output=$("$REPO_ROOT/clear-startup-cache.sh" --dry-run --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-dry-run" "$dry_run_output" "Would remove $relative_profile/startupCache"
@@ -586,9 +594,14 @@ PROFILES_INI
     clean_output=$("$REPO_ROOT/clear-startup-cache.sh" --profiles-ini "$firefox_data/profiles.ini")
     assert_output_contains "$name-clean" "$clean_output" "No startupCache directories found."
 
+    status_output=$("$REPO_ROOT/clear-startup-cache.sh" --status --profiles-ini "$firefox_data/profiles.ini")
+    assert_output_contains "$name-clean-status" "$status_output" "startupCache directories: 0"
+    assert_output_contains "$name-clean-status" "$status_output" "next step: no startupCache cleanup needed."
+
     status_output=$("$REPO_ROOT/clear-startup-cache.sh" --status --profile "$direct_profile")
     assert_output_contains "$name-direct-status" "$status_output" "profiles: 1"
     assert_output_contains "$name-direct-status" "$status_output" "startupCache: present $direct_profile/startupCache"
+    assert_output_contains "$name-direct-status" "$status_output" "startupCache directories: 1"
 
     "$REPO_ROOT/clear-startup-cache.sh" --profile "$direct_profile" > /dev/null
     if [[ -d "$direct_profile/startupCache" ]]; then
